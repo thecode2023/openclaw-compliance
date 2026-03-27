@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { FindingCard } from "./FindingCard";
+import { CostAnalysis } from "./CostAnalysis";
 import { formatDistanceToNow } from "date-fns";
 import type {
   AuditReport as AuditReportType,
@@ -93,7 +94,7 @@ export function AuditReportDisplay({
   const [collapsedJurisdictions, setCollapsedJurisdictions] = useState<
     Set<string>
   >(new Set());
-  const [activeTab, setActiveTab] = useState<"findings" | "recommendations">(
+  const [activeTab, setActiveTab] = useState<"findings" | "recommendations" | "costs">(
     "findings"
   );
   const [severityFilter, setSeverityFilter] =
@@ -189,10 +190,10 @@ export function AuditReportDisplay({
       {/* Summary Header */}
       <Card className={riskConfig.bgColor}>
         <CardContent className="pt-6">
-          <div className="flex items-center gap-6">
+          <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
             {/* Risk Score Ring */}
-            <div className="relative h-24 w-24 shrink-0">
-              <svg className="h-24 w-24 -rotate-90" viewBox="0 0 100 100">
+            <div className="relative h-20 w-20 sm:h-24 sm:w-24 shrink-0">
+              <svg className="h-20 w-20 sm:h-24 sm:w-24 -rotate-90" viewBox="0 0 100 100">
                 <circle
                   cx="50"
                   cy="50"
@@ -270,6 +271,17 @@ export function AuditReportDisplay({
           Findings ({report.findings.length})
         </button>
         <button
+          onClick={() => setActiveTab("costs")}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-1.5 ${
+            activeTab === "costs"
+              ? "border-primary text-foreground"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <span className="text-xs">$</span>
+          Cost Analysis
+        </button>
+        <button
           onClick={() => setActiveTab("recommendations")}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-1.5 ${
             activeTab === "recommendations"
@@ -286,12 +298,12 @@ export function AuditReportDisplay({
       {activeTab === "findings" && (
         <div className="space-y-4">
           {/* Severity Filter Bar */}
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
             <button
               onClick={() =>
                 setSeverityFilter(severityFilter === "all" ? "all" : "all")
               }
-              className={`px-2.5 py-1 rounded-md text-xs font-medium border transition-colors ${
+              className={`px-2.5 py-1.5 sm:py-1 rounded-md text-xs font-medium border transition-colors min-h-[36px] sm:min-h-0 ${
                 severityFilter === "all"
                   ? "bg-accent text-accent-foreground border-border"
                   : "text-muted-foreground border-transparent hover:border-border"
@@ -411,6 +423,11 @@ export function AuditReportDisplay({
             </div>
           )}
         </div>
+      )}
+
+      {/* Cost Analysis Tab */}
+      {activeTab === "costs" && (
+        <CostAnalysis findings={report.findings} />
       )}
 
       {/* Recommendations Tab */}

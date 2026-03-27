@@ -14,7 +14,7 @@ export function ComplianceGauge({ score, size = "lg", label }: ComplianceGaugePr
   const dims = {
     sm: { w: 64, h: 64, stroke: 6, text: "text-lg", sub: "text-[10px]" },
     md: { w: 80, h: 80, stroke: 7, text: "text-xl", sub: "text-xs" },
-    lg: { w: 120, h: 120, stroke: 10, text: "text-3xl", sub: "text-sm" },
+    lg: { w: 100, h: 100, stroke: 8, text: "text-2xl sm:text-3xl", sub: "text-xs sm:text-sm" },
   }[size];
 
   const radius = (dims.w - dims.stroke) / 2;

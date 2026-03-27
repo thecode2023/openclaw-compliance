@@ -2,7 +2,17 @@
 
 import { useState } from "react";
 import { format, parseISO } from "date-fns";
-import { Bell, Check, X, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
+import {
+  Bell,
+  Check,
+  X,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
+  Newspaper,
+  Loader2,
+  Sparkles,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
@@ -37,6 +47,7 @@ interface AlertsFeedProps {
   alerts: ComplianceAlert[];
   digest: WeeklyDigest | null;
   onAlertUpdate?: () => void;
+  showTestDigest?: boolean;
 }
 
 const severityConfig = {
@@ -49,9 +60,10 @@ const severityConfig = {
 
 type Filter = "all" | "unread" | "critical";
 
-export function AlertsFeed({ alerts, digest, onAlertUpdate }: AlertsFeedProps) {
+export function AlertsFeed({ alerts, digest, onAlertUpdate, showTestDigest }: AlertsFeedProps) {
   const [filter, setFilter] = useState<Filter>("all");
   const [digestExpanded, setDigestExpanded] = useState(false);
+  const [generatingDigest, setGeneratingDigest] = useState(false);
 
   const filtered = alerts.filter((a) => {
     if (a.dismissed) return false;
@@ -60,7 +72,6 @@ export function AlertsFeed({ alerts, digest, onAlertUpdate }: AlertsFeedProps) {
     return true;
   });
 
-  // Group alerts by date
   const grouped = filtered.reduce<Record<string, ComplianceAlert[]>>((acc, alert) => {
     const date = format(parseISO(alert.created_at), "yyyy-MM-dd");
     if (!acc[date]) acc[date] = [];
@@ -86,6 +97,18 @@ export function AlertsFeed({ alerts, digest, onAlertUpdate }: AlertsFeedProps) {
     onAlertUpdate?.();
   }
 
+  async function generateTestDigest() {
+    setGeneratingDigest(true);
+    try {
+      await fetch("/api/digest?test=true", { method: "POST" });
+      onAlertUpdate?.();
+    } catch {
+      // silently fail
+    } finally {
+      setGeneratingDigest(false);
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -96,7 +119,7 @@ export function AlertsFeed({ alerts, digest, onAlertUpdate }: AlertsFeedProps) {
               key={f}
               onClick={() => setFilter(f)}
               className={cn(
-                "rounded-md px-2.5 py-1 text-xs font-medium transition-colors capitalize",
+                "rounded-md px-3 py-1.5 text-xs font-medium transition-colors capitalize min-h-[36px]",
                 filter === f
                   ? "bg-accent text-accent-foreground"
                   : "text-muted-foreground hover:text-foreground"
@@ -108,43 +131,112 @@ export function AlertsFeed({ alerts, digest, onAlertUpdate }: AlertsFeedProps) {
         </div>
       </div>
 
-      {/* Weekly Digest Card */}
-      {digest && (
-        <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-4">
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <Bell className="h-4 w-4 text-primary" />
-              <span className="text-sm font-semibold">What Changed This Week</span>
+      {/* Weekly Digest Featured Card */}
+      {digest ? (
+        <div className="relative rounded-lg border-2 border-primary/30 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.08] via-primary/[0.03] to-transparent" />
+          <div className="relative p-4">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/15">
+                  <Newspaper className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <div>
+                  <span className="text-sm font-semibold">What Changed This Week</span>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    Generated {digest.generated_at ? format(parseISO(digest.generated_at), "MMM d, yyyy") : "recently"} · Covering{" "}
+                    {digest.digest_content.period_label} ·{" "}
+                    {digest.digest_content.updates_count} update{digest.digest_content.updates_count !== 1 ? "s" : ""} analyzed
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setDigestExpanded(!digestExpanded)}
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+              >
+                {digestExpanded ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+              </button>
             </div>
-            <button
-              onClick={() => setDigestExpanded(!digestExpanded)}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              {digestExpanded ? (
-                <ChevronUp className="h-4 w-4" />
-              ) : (
-                <ChevronDown className="h-4 w-4" />
+            <div
+              className={cn(
+                "mt-3 text-sm leading-relaxed text-foreground/90 whitespace-pre-line",
+                !digestExpanded && "line-clamp-2"
               )}
-            </button>
-          </div>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Generated {format(parseISO(digest.generated_at), "MMM d, yyyy")} · Covering{" "}
-            {format(parseISO(digest.period_start), "MMM d")}–
-            {format(parseISO(digest.period_end), "MMM d")} ·{" "}
-            {digest.digest_content.updates_count} updates analyzed
-          </p>
-          <div className={cn("mt-3 text-sm leading-relaxed", !digestExpanded && "line-clamp-2")}>
-            {digest.digest_content.briefing}
-          </div>
-          {!digestExpanded && (
-            <button
-              onClick={() => setDigestExpanded(true)}
-              className="mt-1 text-xs font-medium text-primary hover:underline"
             >
-              Read full briefing
-            </button>
-          )}
+              {digest.digest_content.briefing}
+            </div>
+            {!digestExpanded && (
+              <button
+                onClick={() => setDigestExpanded(true)}
+                className="mt-1.5 text-xs font-medium text-primary hover:underline"
+              >
+                Read full briefing
+              </button>
+            )}
+          </div>
         </div>
+      ) : (
+        <div className="rounded-lg border border-dashed border-primary/20 bg-primary/[0.02] p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
+              <Sparkles className="h-4 w-4 text-primary/50" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-foreground/70">Weekly Briefing</p>
+              <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                Your first weekly briefing will appear here next Monday. It will synthesize regulatory changes affecting your jurisdictions into an executive summary.
+              </p>
+              {showTestDigest && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={generateTestDigest}
+                  disabled={generatingDigest}
+                  className="mt-2 h-7 text-xs"
+                >
+                  {generatingDigest ? (
+                    <>
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-3 w-3 mr-1" />
+                      Generate Test Digest
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Test digest button when digest exists */}
+      {showTestDigest && digest && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={generateTestDigest}
+          disabled={generatingDigest}
+          className="h-7 text-xs text-muted-foreground"
+        >
+          {generatingDigest ? (
+            <>
+              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+              Regenerating...
+            </>
+          ) : (
+            <>
+              <Sparkles className="h-3 w-3 mr-1" />
+              Regenerate Test Digest
+            </>
+          )}
+        </Button>
       )}
 
       {/* Alerts */}
@@ -206,33 +298,33 @@ function AlertItem({
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span
               className={cn(
-                "inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase",
+                "inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase shrink-0",
                 sev.color
               )}
             >
               {alert.severity}
             </span>
-            <span className={cn("text-sm font-medium truncate", !alert.read && "text-foreground")}>
+            <span className={cn("text-sm font-medium", !alert.read && "text-foreground")}>
               {alert.title}
             </span>
           </div>
           <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{alert.summary}</p>
         </div>
-        <div className="flex shrink-0 gap-1">
+        <div className="flex shrink-0 gap-0.5">
           {!alert.read && (
-            <Button variant="ghost" size="sm" onClick={onMarkRead} className="h-7 w-7 p-0" title="Mark as read">
-              <Check className="h-3.5 w-3.5" />
+            <Button variant="ghost" size="sm" onClick={onMarkRead} className="h-9 w-9 sm:h-7 sm:w-7 p-0" title="Mark as read">
+              <Check className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
             </Button>
           )}
-          <Button variant="ghost" size="sm" onClick={onDismiss} className="h-7 w-7 p-0" title="Dismiss">
-            <X className="h-3.5 w-3.5" />
+          <Button variant="ghost" size="sm" onClick={onDismiss} className="h-9 w-9 sm:h-7 sm:w-7 p-0" title="Dismiss">
+            <X className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
           </Button>
-          <Button variant="ghost" size="sm" asChild className="h-7 w-7 p-0" title="View regulation">
-            <a href={`/feed`}>
-              <ExternalLink className="h-3.5 w-3.5" />
+          <Button variant="ghost" size="sm" asChild className="h-9 w-9 sm:h-7 sm:w-7 p-0" title="View regulation">
+            <a href="/feed">
+              <ExternalLink className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
             </a>
           </Button>
         </div>

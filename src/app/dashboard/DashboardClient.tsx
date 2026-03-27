@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { format } from "date-fns";
 import {
   Globe,
@@ -16,6 +16,7 @@ import {
   FileText,
   RefreshCw,
   CalendarClock,
+  DollarSign,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -25,11 +26,14 @@ import {
   JurisdictionCommandCenter,
   type JurisdictionData,
 } from "@/components/dashboard/JurisdictionCard";
+import { WorldMap } from "@/components/dashboard/WorldMap";
+import { JURISDICTION_OPTIONS } from "@/lib/types/user";
 import { AlertsFeed, type ComplianceAlert, type WeeklyDigest } from "@/components/dashboard/AlertsFeed";
 import { ProfileEditor } from "@/components/dashboard/ProfileEditor";
 import type { UserProfile, JurisdictionPriority } from "@/lib/types/user";
 import type { VelocityMap } from "@/lib/utils/velocity";
-import type { QuickStats, JurisdictionExtra } from "./page";
+import { formatCurrency } from "@/lib/utils/cost-estimator";
+import type { QuickStats, JurisdictionExtra, CostExposure } from "./page";
 
 interface DashboardClientProps {
   profile: UserProfile;
@@ -43,6 +47,9 @@ interface DashboardClientProps {
   quickStats: QuickStats;
   jurisdictionExtras: Record<string, JurisdictionExtra>;
   attentionCount: number;
+  costExposure: CostExposure;
+  recentUpdateJurisdictions: string[];
+  allRegCounts: Record<string, number>;
 }
 
 export function DashboardClient({
@@ -57,9 +64,14 @@ export function DashboardClient({
   quickStats,
   jurisdictionExtras,
   attentionCount,
+  costExposure,
+  recentUpdateJurisdictions,
+  allRegCounts,
 }: DashboardClientProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [profileEditorOpen, setProfileEditorOpen] = useState(false);
+  const showTestDigest = searchParams.get("test") === "true" || process.env.NODE_ENV === "development";
 
   const latestSnapshot = snapshots[0];
   const overallScore = latestSnapshot?.overall_score ?? 65;
@@ -212,10 +224,46 @@ export function DashboardClient({
           }
           color={quickStats.nextDeadline ? "text-red-500" : "text-muted-foreground"}
         />
+        {costExposure.total > 0 && (
+          <StatPill
+            icon={DollarSign}
+            label={`${formatCurrency(costExposure.total)} max exposure across ${costExposure.jurisdictionsWithPenalties} jurisdiction${costExposure.jurisdictionsWithPenalties !== 1 ? "s" : ""}`}
+            color="text-red-500"
+          />
+        )}
       </div>
 
       {/* ============================================================= */}
-      {/* 3. Compliance Trend — full width                               */}
+      {/* 3. World Map — full width, hidden on mobile                    */}
+      {/* ============================================================= */}
+      <WorldMap
+        jurisdictions={(() => {
+          const allCodes = [
+            "EU", "GB", "US", "US-TX", "US-CO", "US-CA", "US-IL",
+            "CA", "BR", "SG", "ID", "INTL",
+          ];
+          const trackedSet = new Set(profile.jurisdictions);
+          const recentSet = new Set(recentUpdateJurisdictions);
+          return allCodes.map((code) => {
+            const jOpt = JURISDICTION_OPTIONS.find((j) => j.code === code);
+            return {
+              code,
+              name: jOpt?.name ?? code,
+              regulationCount: allRegCounts[code] ?? 0,
+              velocityLevel: velocityScores[code]?.level ?? "low",
+              velocityScore: velocityScores[code]?.score ?? 0,
+              isTracked: trackedSet.has(code),
+              hasRecentUpdate: recentSet.has(code),
+              complianceStatus: trackedSet.has(code)
+                ? (jurisdictionData.find((j) => j.code === code)?.status ?? "unknown").replace("_", " ")
+                : "not tracked",
+            };
+          });
+        })()}
+      />
+
+      {/* ============================================================= */}
+      {/* 4. Compliance Trend — full width                               */}
       {/* ============================================================= */}
       <div className="rounded-lg border border-border bg-card p-4">
         <ComplianceTrend snapshots={snapshots} />
@@ -238,6 +286,7 @@ export function DashboardClient({
           alerts={alerts}
           digest={digest}
           onAlertUpdate={() => router.refresh()}
+          showTestDigest={showTestDigest}
         />
       </div>
 

@@ -126,11 +126,15 @@ export function FeedClient({
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [view, setView] = useState<"table" | "card">("table");
+  // Auto card view on mobile
+  const [view, setView] = useState<"table" | "card">(
+    typeof window !== "undefined" && window.innerWidth < 640 ? "card" : "table"
+  );
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [sortField, setSortField] = useState<SortField>("last_verified_at");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [updatesOpen, setUpdatesOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [searchDraft, setSearchDraft] = useState(searchParams.get("search") || "");
 
   // Active filters
@@ -214,35 +218,35 @@ export function FeedClient({
       {/* Header */}
       <div className="flex items-end justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-xl font-bold tracking-tight">Regulatory Intelligence Feed</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {total} regulation{total !== 1 ? "s" : ""} tracked across global jurisdictions
+          <h1 className="text-lg sm:text-xl font-bold tracking-tight">Regulatory Intelligence Feed</h1>
+          <p className="text-xs sm:text-xs text-muted-foreground mt-0.5">
+            {total} regulation{total !== 1 ? "s" : ""} tracked
           </p>
         </div>
         <div className="flex items-center gap-1 rounded-md border border-border p-0.5">
           <button
             onClick={() => setView("table")}
             className={cn(
-              "flex items-center gap-1 rounded px-2 py-1 text-xs transition-colors",
+              "flex items-center gap-1 rounded px-2.5 py-1.5 text-xs transition-colors min-h-[36px]",
               view === "table"
                 ? "bg-accent text-foreground"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
-            <Table2 className="h-3 w-3" />
-            Table
+            <Table2 className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Table</span>
           </button>
           <button
             onClick={() => setView("card")}
             className={cn(
-              "flex items-center gap-1 rounded px-2 py-1 text-xs transition-colors",
+              "flex items-center gap-1 rounded px-2.5 py-1.5 text-xs transition-colors min-h-[36px]",
               view === "card"
                 ? "bg-accent text-foreground"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
-            <LayoutGrid className="h-3 w-3" />
-            Cards
+            <LayoutGrid className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Cards</span>
           </button>
         </div>
       </div>
@@ -250,59 +254,109 @@ export function FeedClient({
       {/* ============================================================= */}
       {/* Filter Bar                                                     */}
       {/* ============================================================= */}
-      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card/50 px-3 py-2">
-        <FilterSelect
-          value={activeJurisdiction || "all"}
-          options={jurisdictionOptions}
-          onChange={(v) => updateParams("jurisdiction", v)}
-        />
-        <FilterSelect
-          value={activeStatus || "all"}
-          options={statusOptions}
-          onChange={(v) => updateParams("status", v)}
-        />
-        <FilterSelect
-          value={activeCategory || "all"}
-          options={categoryOptions}
-          onChange={(v) => updateParams("category", v)}
-        />
+      <div className="rounded-lg border border-border bg-card/50 px-3 py-2">
+        {/* Mobile: filter toggle + search */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setFiltersOpen(!filtersOpen)}
+            className="sm:hidden flex items-center gap-1 rounded-md border border-input px-2.5 py-1.5 text-xs text-muted-foreground min-h-[36px]"
+          >
+            <Search className="h-3 w-3" />
+            Filters
+            {activeFilterCount > 0 && (
+              <span className="rounded-full bg-primary px-1.5 text-[9px] text-primary-foreground font-bold">
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
 
-        <div className="flex-1 min-w-[160px]">
-          <div className="relative">
-            <Search className="absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-            <input
-              value={searchDraft}
-              onChange={(e) => {
-                setSearchDraft(e.target.value);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") updateParams("search", searchDraft);
-              }}
-              onBlur={() => {
-                if (searchDraft !== activeSearch) updateParams("search", searchDraft);
-              }}
-              placeholder="Search..."
-              className="h-7 w-full rounded-md border border-input bg-transparent pl-7 pr-2 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+          {/* Desktop: inline dropdowns */}
+          <div className="hidden sm:flex items-center gap-2 flex-wrap flex-1">
+            <FilterSelect
+              value={activeJurisdiction || "all"}
+              options={jurisdictionOptions}
+              onChange={(v) => updateParams("jurisdiction", v)}
             />
+            <FilterSelect
+              value={activeStatus || "all"}
+              options={statusOptions}
+              onChange={(v) => updateParams("status", v)}
+            />
+            <FilterSelect
+              value={activeCategory || "all"}
+              options={categoryOptions}
+              onChange={(v) => updateParams("category", v)}
+            />
+          </div>
+
+          <div className="flex-1 min-w-[120px]">
+            <div className="relative">
+              <Search className="absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <input
+                value={searchDraft}
+                onChange={(e) => setSearchDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") updateParams("search", searchDraft);
+                }}
+                onBlur={() => {
+                  if (searchDraft !== activeSearch) updateParams("search", searchDraft);
+                }}
+                placeholder="Search..."
+                className="h-8 sm:h-7 w-full rounded-md border border-input bg-transparent pl-7 pr-2 text-sm sm:text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+              />
+            </div>
+          </div>
+
+          <div className="hidden sm:flex items-center gap-2 text-[10px] text-muted-foreground shrink-0">
+            {activeFilterCount > 0 && (
+              <>
+                <span>
+                  Showing {regulations.length} of {total}
+                </span>
+                <button
+                  onClick={clearFilters}
+                  className="flex items-center gap-0.5 text-primary hover:underline"
+                >
+                  <X className="h-3 w-3" />
+                  Clear
+                </button>
+              </>
+            )}
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-[10px] text-muted-foreground shrink-0">
-          {activeFilterCount > 0 && (
-            <>
-              <span>
-                Showing {regulations.length} of {total}
-              </span>
-              <button
-                onClick={clearFilters}
-                className="flex items-center gap-0.5 text-primary hover:underline"
-              >
-                <X className="h-3 w-3" />
-                Clear
-              </button>
-            </>
-          )}
-        </div>
+        {/* Mobile: expanded filter dropdowns */}
+        {filtersOpen && (
+          <div className="sm:hidden mt-2 pt-2 border-t border-border space-y-2">
+            <FilterSelect
+              value={activeJurisdiction || "all"}
+              options={jurisdictionOptions}
+              onChange={(v) => updateParams("jurisdiction", v)}
+            />
+            <FilterSelect
+              value={activeStatus || "all"}
+              options={statusOptions}
+              onChange={(v) => updateParams("status", v)}
+            />
+            <FilterSelect
+              value={activeCategory || "all"}
+              options={categoryOptions}
+              onChange={(v) => updateParams("category", v)}
+            />
+            {activeFilterCount > 0 && (
+              <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
+                <span>Showing {regulations.length} of {total}</span>
+                <button
+                  onClick={clearFilters}
+                  className="flex items-center gap-0.5 text-primary hover:underline min-h-[36px]"
+                >
+                  <X className="h-3 w-3" />
+                  Clear all
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ============================================================= */}
@@ -415,7 +469,7 @@ export function FeedClient({
                   key={p}
                   onClick={() => goToPage(p as number)}
                   className={cn(
-                    "flex h-7 w-7 items-center justify-center rounded text-xs tabular-nums transition-colors",
+                    "flex h-9 w-9 sm:h-7 sm:w-7 items-center justify-center rounded text-xs tabular-nums transition-colors",
                     p === page
                       ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:bg-accent"
@@ -574,7 +628,7 @@ function TableRow({
                 </div>
               )}
 
-              <div className="flex items-center gap-4 text-[10px] text-muted-foreground pt-1">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-muted-foreground pt-1">
                 {reg.effective_date && (
                   <span className="flex items-center gap-1">
                     <CalendarDays className="h-3 w-3" />
@@ -654,7 +708,7 @@ function FilterSelect({
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="h-7 rounded-md border border-input bg-transparent px-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer appearance-none pr-6"
+      className="h-9 sm:h-7 w-full sm:w-auto rounded-md border border-input bg-transparent px-2 text-sm sm:text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer appearance-none pr-6"
       style={{
         backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
         backgroundRepeat: "no-repeat",

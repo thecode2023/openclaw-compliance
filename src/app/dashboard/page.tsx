@@ -2,12 +2,19 @@ import { redirect } from "next/navigation";
 import { createServerComponentClient } from "@/lib/supabase/server";
 import { DashboardClient } from "./DashboardClient";
 import { computeVelocityScores } from "@/lib/utils/velocity";
+import { estimateMaxExposure } from "@/lib/utils/cost-estimator";
 
 export interface QuickStats {
   enactedCount: number;
   proposedCount: number;
   updatedThisMonth: number;
   nextDeadline: string | null;
+}
+
+export interface CostExposure {
+  total: number;
+  jurisdictionsWithPenalties: number;
+  hasCriminal: boolean;
 }
 
 export interface JurisdictionExtra {
@@ -166,6 +173,20 @@ export default async function DashboardPage() {
   // Compute velocity scores
   const velocityScores = await computeVelocityScores(supabase);
 
+  // Cost exposure
+  const costExposure = estimateMaxExposure(profile.jurisdictions as string[]);
+
+  // Which jurisdictions had updates in last 7 days (for map pulse)
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  const recentUpdateJurisdictions = new Set<string>();
+  (recentUpdates ?? []).forEach((u) => {
+    const j = regIdToJurisdiction[u.regulation_id];
+    if (j && new Date(u.detected_at) >= sevenDaysAgo) {
+      recentUpdateJurisdictions.add(j);
+    }
+  });
+
   // Count requiring attention: jurisdictions with velocity high or score < 50
   const attentionCount = trackedRegs.filter(
     (r) =>
@@ -186,6 +207,9 @@ export default async function DashboardPage() {
       quickStats={quickStats}
       jurisdictionExtras={jurisdictionExtras}
       attentionCount={attentionCount}
+      costExposure={costExposure}
+      recentUpdateJurisdictions={Array.from(recentUpdateJurisdictions)}
+      allRegCounts={regCounts}
     />
   );
 }

@@ -51,18 +51,18 @@ export default function AuditPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight">
+      <div className="mb-4 sm:mb-6">
+        <h1 className="text-lg sm:text-2xl font-bold tracking-tight">
           OpenClaw Configuration Auditor
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="text-xs sm:text-sm text-muted-foreground mt-1">
           Paste an OpenClaw agent config to audit it against live regulatory
           data. Every finding is grounded in real regulations — zero
           hallucinated citations.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Left: Config Input */}
         <div>
           <ConfigInput

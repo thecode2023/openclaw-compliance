@@ -82,7 +82,7 @@ export function Header() {
 
         {/* Mobile hamburger */}
         <button
-          className="sm:hidden ml-auto p-2 text-muted-foreground hover:text-foreground"
+          className="sm:hidden ml-auto flex h-11 w-11 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           aria-label="Toggle menu"
         >
@@ -104,7 +104,7 @@ export function Header() {
                 href={item.href}
                 onClick={() => setMobileMenuOpen(false)}
                 className={cn(
-                  "px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                  "px-3 py-3 text-base font-medium rounded-md transition-colors min-h-[44px] flex items-center",
                   pathname === item.href ||
                     (item.href === "/dashboard" &&
                       pathname.startsWith("/dashboard"))
@@ -118,7 +118,7 @@ export function Header() {
             {!loading && user && (
               <>
                 <div className="border-t border-border my-2" />
-                <div className="px-3 py-1 text-xs text-muted-foreground truncate">
+                <div className="px-3 py-1 text-sm text-muted-foreground truncate">
                   {user.email}
                 </div>
                 <button
@@ -126,7 +126,7 @@ export function Header() {
                     setMobileMenuOpen(false);
                     handleSignOut();
                   }}
-                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground rounded-md hover:bg-accent/50 transition-colors"
+                  className="flex items-center gap-2 px-3 py-3 text-base font-medium text-muted-foreground hover:text-foreground rounded-md hover:bg-accent/50 transition-colors min-h-[44px]"
                 >
                   <LogOut className="h-4 w-4" />
                   Sign out
