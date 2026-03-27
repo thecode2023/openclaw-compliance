@@ -85,6 +85,7 @@ export async function PUT(request: NextRequest) {
     "jurisdictions",
     "ai_use_cases",
     "notification_prefs",
+    "jurisdiction_priorities",
   ];
 
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };

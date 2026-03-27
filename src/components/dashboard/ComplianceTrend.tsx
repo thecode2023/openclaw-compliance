@@ -70,8 +70,45 @@ export function ComplianceTrend({ snapshots }: ComplianceTrendProps) {
       </div>
 
       {data.length < 2 ? (
-        <div className="flex h-[200px] items-center justify-center rounded-lg border border-dashed border-border text-sm text-muted-foreground">
-          Chart will appear after a few days of data
+        <div className="relative h-[200px] rounded-lg border border-dashed border-border overflow-hidden">
+          {/* Placeholder chart outline */}
+          <svg
+            viewBox="0 0 400 180"
+            className="absolute inset-0 w-full h-full p-4"
+            preserveAspectRatio="none"
+          >
+            {/* Grid lines */}
+            {[0, 1, 2, 3, 4].map((i) => (
+              <line
+                key={`h-${i}`}
+                x1="0"
+                y1={i * 45}
+                x2="400"
+                y2={i * 45}
+                stroke="hsl(var(--border))"
+                strokeWidth="1"
+                strokeDasharray="4 4"
+                opacity="0.5"
+              />
+            ))}
+            {/* Placeholder trend line */}
+            <polyline
+              points="0,140 60,120 120,130 180,90 240,100 300,60 360,70 400,50"
+              fill="none"
+              stroke="hsl(var(--primary))"
+              strokeWidth="2"
+              strokeDasharray="6 4"
+              opacity="0.25"
+            />
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4">
+            <p className="text-sm text-muted-foreground font-medium">
+              Chart will appear after a few days of data
+            </p>
+            <p className="text-xs text-muted-foreground/60 mt-1">
+              Your compliance score trend will be plotted here
+            </p>
+          </div>
         </div>
       ) : (
         <ResponsiveContainer width="100%" height={200}>

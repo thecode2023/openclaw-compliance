@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import {
@@ -13,17 +13,26 @@ import {
   UserCog,
   Info,
   Clock,
+  Gavel,
+  FileText,
+  RefreshCw,
+  CalendarClock,
+  AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ComplianceGauge } from "@/components/dashboard/ComplianceGauge";
 import { ComplianceTrend, type PostureSnapshot } from "@/components/dashboard/ComplianceTrend";
-import { JurisdictionCard, type JurisdictionData } from "@/components/dashboard/JurisdictionCard";
+import {
+  CategorizedJurisdictions,
+  type JurisdictionData,
+} from "@/components/dashboard/JurisdictionCard";
 import { AlertsFeed, type ComplianceAlert, type WeeklyDigest } from "@/components/dashboard/AlertsFeed";
 import { ProfileEditor } from "@/components/dashboard/ProfileEditor";
 import { JURISDICTION_OPTIONS } from "@/lib/types/user";
-import type { UserProfile } from "@/lib/types/user";
+import type { UserProfile, JurisdictionPriority } from "@/lib/types/user";
 import type { VelocityMap } from "@/lib/utils/velocity";
+import type { QuickStats, JurisdictionExtra } from "./page";
 
 interface DashboardClientProps {
   profile: UserProfile;
@@ -34,6 +43,9 @@ interface DashboardClientProps {
   trackedRegCount: number;
   unreadCount: number;
   velocityScores: VelocityMap;
+  quickStats: QuickStats;
+  jurisdictionExtras: Record<string, JurisdictionExtra>;
+  attentionCount: number;
 }
 
 export function DashboardClient({
@@ -45,6 +57,9 @@ export function DashboardClient({
   trackedRegCount,
   unreadCount,
   velocityScores,
+  quickStats,
+  jurisdictionExtras,
+  attentionCount,
 }: DashboardClientProps) {
   const router = useRouter();
   const [profileEditorOpen, setProfileEditorOpen] = useState(false);
@@ -61,6 +76,10 @@ export function DashboardClient({
           : latestSnapshot.jurisdiction_scores)
       : {};
 
+  // Resolve priorities — default to "active" if not set
+  const priorities: Record<string, JurisdictionPriority> =
+    profile.jurisdiction_priorities ?? {};
+
   const jurisdictionData: JurisdictionData[] = profile.jurisdictions.map((code) => {
     const score = jurisdictionScores[code] ?? 60;
     const regCount = regCounts[code] ?? 0;
@@ -68,76 +87,186 @@ export function DashboardClient({
     const velocityScore = velocityScores[code]?.score ?? 0;
     const status: "compliant" | "at_risk" | "non_compliant" =
       score > 70 ? "compliant" : score > 40 ? "at_risk" : "non_compliant";
-    return { code, score, regulationCount: regCount, velocity, velocityScore, status };
+    const priority: JurisdictionPriority = priorities[code] ?? "active";
+    const extra = jurisdictionExtras[code];
+    return {
+      code,
+      score,
+      regulationCount: regCount,
+      velocity,
+      velocityScore,
+      status,
+      priority,
+      auditCoverage: extra?.auditCoverage ?? 0,
+      lastUpdateDate: extra?.lastUpdateDate ?? null,
+    };
   });
+
+  // Persist priority changes
+  const handleChangePriority = useCallback(
+    async (code: string, newPriority: JurisdictionPriority) => {
+      const updated = { ...priorities, [code]: newPriority };
+      await fetch("/api/user/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jurisdiction_priorities: updated }),
+      });
+      router.refresh();
+    },
+    [priorities, router]
+  );
+
+  const handleRemoveJurisdiction = useCallback(
+    async (code: string) => {
+      const newJurisdictions = profile.jurisdictions.filter((j) => j !== code);
+      const newPriorities = { ...priorities };
+      delete newPriorities[code];
+      await fetch("/api/user/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jurisdictions: newJurisdictions,
+          jurisdiction_priorities: newPriorities,
+        }),
+      });
+      router.refresh();
+    },
+    [profile.jurisdictions, priorities, router]
+  );
 
   function handleAlertUpdate() {
     router.refresh();
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
-      {/* Overview Bar */}
-      <div className="rounded-lg border border-border bg-card p-4 sm:p-6">
-        <div className="flex flex-col sm:flex-row items-center gap-6">
-          <div className="relative">
-            <ComplianceGauge score={overallScore} size="lg" label="Overall Score" />
-            <ScoreInfoButton />
-          </div>
-          <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-4 w-full">
-            <StatCard
-              icon={Globe}
-              label="Jurisdictions"
-              value={profile.jurisdictions.length}
-              accent="blue"
-            />
-            <StatCard
-              icon={BookOpen}
-              label="Regulations"
-              value={trackedRegCount}
-              accent="purple"
-            />
-            <StatCard
-              icon={Bell}
-              label="Unread Alerts"
-              value={unreadCount}
-              accent={unreadCount > 0 ? "red" : "muted"}
-            />
-            <StatCard
-              icon={Clock}
-              label="Last Updated"
-              displayValue={
-                latestSnapshot
-                  ? format(new Date(latestSnapshot.snapshot_date), "MMM d, yyyy")
-                  : "\u2014"
-              }
-              accent="green"
-            />
+    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-5">
+      {/* ============================================================= */}
+      {/* Overview Bar — gradient background                             */}
+      {/* ============================================================= */}
+      <div className="relative rounded-xl border border-border overflow-hidden">
+        {/* Gradient background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.06] via-card to-card" />
+        {/* Subtle grid pattern */}
+        <div
+          className="absolute inset-0 opacity-[0.03]"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)",
+            backgroundSize: "24px 24px",
+          }}
+        />
+
+        <div className="relative p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row items-center gap-6">
+            <div className="relative">
+              <ComplianceGauge score={overallScore} size="lg" label="Overall Score" />
+              <ScoreInfoButton />
+            </div>
+
+            <div className="flex-1 w-full space-y-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full">
+                <StatCard
+                  icon={Globe}
+                  label="Jurisdictions"
+                  value={profile.jurisdictions.length}
+                  accent="blue"
+                />
+                <StatCard
+                  icon={BookOpen}
+                  label="Regulations"
+                  value={trackedRegCount}
+                  accent="purple"
+                />
+                <StatCard
+                  icon={Bell}
+                  label="Unread Alerts"
+                  value={unreadCount}
+                  accent={unreadCount > 0 ? "red" : "muted"}
+                />
+                <StatCard
+                  icon={Clock}
+                  label="Last Updated"
+                  displayValue={
+                    latestSnapshot
+                      ? format(new Date(latestSnapshot.snapshot_date), "MMM d, yyyy")
+                      : "\u2014"
+                  }
+                  accent="green"
+                />
+              </div>
+
+              {/* Compliance snapshot sentence */}
+              <p className="text-xs text-muted-foreground leading-relaxed pl-0.5">
+                You are tracking{" "}
+                <span className="font-semibold text-foreground">{trackedRegCount}</span>{" "}
+                regulation{trackedRegCount !== 1 ? "s" : ""} across{" "}
+                <span className="font-semibold text-foreground">
+                  {profile.jurisdictions.length}
+                </span>{" "}
+                jurisdiction{profile.jurisdictions.length !== 1 ? "s" : ""}.
+                {attentionCount > 0 ? (
+                  <>
+                    {" "}
+                    <span className="font-semibold text-amber-500">
+                      {attentionCount}
+                    </span>{" "}
+                    require attention.
+                  </>
+                ) : (
+                  " All systems nominal."
+                )}
+              </p>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Main Grid: 1 col mobile, 2 col tablet, 3 col desktop */}
+      {/* ============================================================= */}
+      {/* Quick Stats Pills                                              */}
+      {/* ============================================================= */}
+      <div className="flex flex-wrap gap-2">
+        <StatPill
+          icon={Gavel}
+          label={`${quickStats.enactedCount} enacted`}
+          color="text-emerald-500"
+        />
+        <StatPill
+          icon={FileText}
+          label={`${quickStats.proposedCount} proposed`}
+          color="text-amber-500"
+        />
+        <StatPill
+          icon={RefreshCw}
+          label={`${quickStats.updatedThisMonth} updated this month`}
+          color="text-blue-500"
+        />
+        <StatPill
+          icon={CalendarClock}
+          label={
+            quickStats.nextDeadline
+              ? `Next deadline: ${format(new Date(quickStats.nextDeadline), "MMM d, yyyy")}`
+              : "No upcoming deadlines"
+          }
+          color={quickStats.nextDeadline ? "text-red-500" : "text-muted-foreground"}
+        />
+      </div>
+
+      {/* ============================================================= */}
+      {/* Main Grid                                                      */}
+      {/* ============================================================= */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {/* Column 1: Compliance Trend */}
         <div className="rounded-lg border border-border bg-card p-4 sm:p-5 md:col-span-2 lg:col-span-1">
           <ComplianceTrend snapshots={snapshots} />
         </div>
 
-        {/* Column 2: Jurisdiction Cards */}
-        <div className="rounded-lg border border-border bg-card p-4 sm:p-5 space-y-3">
-          <h3 className="text-sm font-medium">Tracked Jurisdictions</h3>
-          <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
-            {jurisdictionData.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4 text-center">
-                No jurisdictions tracked yet.
-              </p>
-            ) : (
-              jurisdictionData.map((j) => (
-                <JurisdictionCard key={j.code} data={j} />
-              ))
-            )}
-          </div>
+        {/* Column 2: Categorized Jurisdiction Cards */}
+        <div className="rounded-lg border border-border bg-card p-4 sm:p-5">
+          <CategorizedJurisdictions
+            jurisdictions={jurisdictionData}
+            onChangePriority={handleChangePriority}
+            onRemove={handleRemoveJurisdiction}
+          />
         </div>
 
         {/* Column 3: Activity Feed */}
@@ -150,7 +279,9 @@ export function DashboardClient({
         </div>
       </div>
 
-      {/* Quick Actions Bar */}
+      {/* ============================================================= */}
+      {/* Quick Actions Bar                                              */}
+      {/* ============================================================= */}
       <div className="rounded-lg border border-border bg-card p-4">
         <div className="flex flex-wrap gap-3 justify-center sm:justify-start">
           <Button variant="outline" asChild>
@@ -181,6 +312,10 @@ export function DashboardClient({
     </div>
   );
 }
+
+/* ------------------------------------------------------------------ */
+/* Stat Card (overview bar)                                            */
+/* ------------------------------------------------------------------ */
 
 const accentStyles = {
   blue: {
@@ -228,7 +363,7 @@ function StatCard({
   return (
     <div
       className={cn(
-        "flex items-center gap-3 rounded-lg border border-border border-l-[3px] p-3 transition-colors",
+        "flex items-center gap-3 rounded-lg border border-border border-l-[3px] bg-card/50 p-3 transition-colors",
         style.border
       )}
     >
@@ -244,6 +379,31 @@ function StatCard({
     </div>
   );
 }
+
+/* ------------------------------------------------------------------ */
+/* Quick Stat Pill                                                     */
+/* ------------------------------------------------------------------ */
+
+function StatPill({
+  icon: Icon,
+  label,
+  color,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  color: string;
+}) {
+  return (
+    <div className="flex items-center gap-1.5 rounded-full border border-border bg-card/50 px-3 py-1.5 text-xs">
+      <Icon className={cn("h-3 w-3", color)} />
+      <span className="text-muted-foreground">{label}</span>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Score Info Button                                                    */
+/* ------------------------------------------------------------------ */
 
 function ScoreInfoButton() {
   const [open, setOpen] = useState(false);

@@ -1,3 +1,5 @@
+export type JurisdictionPriority = "active" | "monitoring" | "expansion";
+
 export interface UserProfile {
   id: string;
   display_name: string | null;
@@ -6,6 +8,7 @@ export interface UserProfile {
   jurisdictions: string[];
   ai_use_cases: string[];
   notification_prefs: NotificationPrefs;
+  jurisdiction_priorities: Record<string, JurisdictionPriority>;
   onboarded: boolean;
   created_at: string;
   updated_at: string;

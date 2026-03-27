@@ -149,9 +149,19 @@ export function AlertsFeed({ alerts, digest, onAlertUpdate }: AlertsFeedProps) {
 
       {/* Alerts */}
       {Object.keys(grouped).length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-8 text-center">
-          <Bell className="h-8 w-8 text-muted-foreground/50" />
-          <p className="mt-2 text-sm text-muted-foreground">No alerts to display</p>
+        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-10 px-4 text-center">
+          <div className="relative">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/5">
+              <Bell className="h-7 w-7 text-primary/30" />
+            </div>
+            <div className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-500/50 ring-2 ring-card" />
+          </div>
+          <p className="mt-3 text-sm font-medium text-foreground/80">
+            Your compliance feed is quiet
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground max-w-[220px] leading-relaxed">
+            Alerts will appear here when regulations change in your tracked jurisdictions.
+          </p>
         </div>
       ) : (
         Object.entries(grouped)

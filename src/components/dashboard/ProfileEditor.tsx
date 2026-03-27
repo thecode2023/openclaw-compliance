@@ -97,6 +97,13 @@ export function ProfileEditor({ profile, open, onOpenChange }: ProfileEditorProp
           industry,
           jurisdictions,
           ai_use_cases: useCases,
+          // Clean up priorities: remove old jurisdictions, default new ones to "active"
+          jurisdiction_priorities: Object.fromEntries(
+            jurisdictions.map((j) => [
+              j,
+              profile.jurisdiction_priorities?.[j] ?? "active",
+            ])
+          ),
         }),
       });
 
