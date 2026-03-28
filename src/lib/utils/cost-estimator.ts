@@ -111,6 +111,103 @@ export const penaltyData: Record<string, PenaltyStructure> = {
     enforcement_body: "N/A (non-binding)",
     jurisdiction_display: "International (OECD)",
   },
+  // New jurisdictions
+  "US-CT": {
+    max_fine_fixed: null,
+    max_fine_percentage: null,
+    fine_basis: "AG enforcement (penalties TBD)",
+    criminal_penalties: false,
+    enforcement_body: "Connecticut Attorney General",
+    jurisdiction_display: "United States — Connecticut",
+  },
+  "US-UT": {
+    max_fine_fixed: null,
+    max_fine_percentage: null,
+    fine_basis: "existing consumer protection penalties",
+    criminal_penalties: false,
+    enforcement_body: "Utah Attorney General",
+    jurisdiction_display: "United States — Utah",
+  },
+  "US-TN": {
+    max_fine_fixed: null,
+    max_fine_percentage: null,
+    fine_basis: "statutory + actual damages",
+    criminal_penalties: false,
+    enforcement_body: "Private right of action",
+    jurisdiction_display: "United States — Tennessee",
+  },
+  "US-NYC": {
+    max_fine_fixed: 1_500,
+    max_fine_percentage: null,
+    fine_basis: "per violation per day ($500-$1,500)",
+    criminal_penalties: false,
+    enforcement_body: "NYC Dept of Consumer and Worker Protection",
+    jurisdiction_display: "United States — New York City",
+  },
+  "US-MD": {
+    max_fine_fixed: null,
+    max_fine_percentage: null,
+    fine_basis: "AG enforcement under consumer protection",
+    criminal_penalties: false,
+    enforcement_body: "Maryland Attorney General",
+    jurisdiction_display: "United States — Maryland",
+  },
+  KR: {
+    max_fine_fixed: null,
+    max_fine_percentage: null,
+    fine_basis: "penalties TBD by implementing regulations",
+    criminal_penalties: false,
+    enforcement_body: "AI Committee (Prime Minister)",
+    jurisdiction_display: "South Korea",
+  },
+  JP: {
+    max_fine_fixed: 800_000,    // JPY 100M ≈ $800K (corporate)
+    max_fine_percentage: null,
+    fine_basis: "corporate fines up to JPY 100M",
+    criminal_penalties: true,
+    enforcement_body: "Personal Information Protection Commission (PPC)",
+    jurisdiction_display: "Japan",
+  },
+  CN: {
+    max_fine_fixed: null,
+    max_fine_percentage: null,
+    fine_basis: "service suspension, existing cyber/data law penalties",
+    criminal_penalties: true,
+    enforcement_body: "Cyberspace Administration of China (CAC)",
+    jurisdiction_display: "China",
+  },
+  AU: {
+    max_fine_fixed: null,
+    max_fine_percentage: null,
+    fine_basis: "mandatory guardrails pending (voluntary currently)",
+    criminal_penalties: false,
+    enforcement_body: "Pending legislative framework",
+    jurisdiction_display: "Australia",
+  },
+  IN: {
+    max_fine_fixed: 30_000_000,  // INR 250 crore ≈ $30M
+    max_fine_percentage: null,
+    fine_basis: "up to INR 250 crore per violation",
+    criminal_penalties: false,
+    enforcement_body: "Data Protection Board of India",
+    jurisdiction_display: "India",
+  },
+  SA: {
+    max_fine_fixed: 1_300_000,   // SAR 5M ≈ $1.3M
+    max_fine_percentage: null,
+    fine_basis: "fines up to SAR 5 million",
+    criminal_penalties: true,
+    enforcement_body: "Saudi Data and AI Authority (SDAIA)",
+    jurisdiction_display: "Saudi Arabia",
+  },
+  ZA: {
+    max_fine_fixed: 500_000,     // ZAR 10M ≈ $500K
+    max_fine_percentage: null,
+    fine_basis: "up to ZAR 10 million + imprisonment",
+    criminal_penalties: true,
+    enforcement_body: "Information Regulator",
+    jurisdiction_display: "South Africa",
+  },
 };
 
 /* ------------------------------------------------------------------ */

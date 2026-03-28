@@ -57,6 +57,13 @@ function isoToJurisdiction(isoNumeric: string): string | null {
     case "076": return "BR";
     case "702": return "SG";
     case "360": return "ID";
+    case "410": return "KR";
+    case "392": return "JP";
+    case "156": return "CN";
+    case "036": return "AU";
+    case "356": return "IN";
+    case "682": return "SA";
+    case "710": return "ZA";
     default: return null;
   }
 }
@@ -72,11 +79,23 @@ const PIN_LOCATIONS: Record<string, { coords: [number, number]; label: string }>
   "US-CO": { coords: [-105.5, 39.0],  label: "CO" },
   "US-CA": { coords: [-119.4, 36.8],  label: "CA" },
   "US-IL": { coords: [-89.0, 40.0],   label: "IL" },
+  "US-CT": { coords: [-72.7, 41.6],   label: "CT" },
+  "US-UT": { coords: [-111.9, 39.3],  label: "UT" },
+  "US-TN": { coords: [-86.6, 35.7],   label: "TN" },
+  "US-NYC": { coords: [-74.0, 40.7],  label: "NYC" },
+  "US-MD": { coords: [-76.6, 39.0],   label: "MD" },
   CA:      { coords: [-106.3, 56.1],  label: "CA" },
   GB:      { coords: [-3.4, 55.4],    label: "UK" },
   BR:      { coords: [-51.9, -14.2],  label: "BR" },
   SG:      { coords: [103.8, 1.35],   label: "SG" },
   ID:      { coords: [113.9, -0.8],   label: "ID" },
+  KR:      { coords: [127.8, 36.5],   label: "KR" },
+  JP:      { coords: [138.3, 36.2],   label: "JP" },
+  CN:      { coords: [104.2, 35.9],   label: "CN" },
+  AU:      { coords: [133.8, -25.3],  label: "AU" },
+  IN:      { coords: [78.9, 20.6],    label: "IN" },
+  SA:      { coords: [45.1, 23.9],    label: "SA" },
+  ZA:      { coords: [25.7, -29.0],   label: "ZA" },
   INTL:    { coords: [2.3, 48.9],     label: "OECD" },
 };
 
@@ -221,7 +240,7 @@ export const WorldMap = memo(function WorldMap({ jurisdictions }: WorldMapProps)
         </div>
 
         {/* Map container */}
-        <div className="relative" onMouseLeave={() => setTooltip(null)}>
+        <div className="relative max-h-[400px] overflow-hidden" onMouseLeave={() => setTooltip(null)}>
           {/* HUD corner brackets — overlaid via absolute positioning */}
           <div className="absolute top-0 left-0 w-3 h-3 border-l border-t border-cyan-500/10 pointer-events-none z-10" />
           <div className="absolute top-0 right-0 w-3 h-3 border-r border-t border-cyan-500/10 pointer-events-none z-10" />

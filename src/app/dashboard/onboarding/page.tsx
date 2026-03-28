@@ -30,7 +30,7 @@ const STEPS = [
   { label: "Review", icon: CheckCircle },
 ];
 
-const REGIONS = ["Europe", "North America", "Latin America", "Asia-Pacific", "International"] as const;
+const REGIONS = ["Europe", "North America", "Latin America", "Asia-Pacific", "Middle East & Africa", "International"] as const;
 
 export default function OnboardingPage() {
   const router = useRouter();

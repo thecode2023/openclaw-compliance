@@ -9,6 +9,7 @@ export interface QuickStats {
   proposedCount: number;
   updatedThisMonth: number;
   nextDeadline: string | null;
+  lastDataDate: string | null;
 }
 
 export interface CostExposure {
@@ -45,7 +46,7 @@ export default async function DashboardPage() {
   }
 
   // Fetch posture snapshots (last 30 days)
-  const { data: snapshots } = await supabase
+  let { data: snapshots } = await supabase
     .from("posture_snapshots")
     .select("*")
     .eq("user_id", user.id)
@@ -69,10 +70,10 @@ export default async function DashboardPage() {
     .order("period_end", { ascending: false })
     .limit(1);
 
-  // Fetch all regulations with status, jurisdiction, effective_date
+  // Fetch all regulations with status, jurisdiction, effective_date, last_verified_at
   const { data: regulations } = await supabase
     .from("regulations")
-    .select("id, jurisdiction, status, effective_date");
+    .select("id, jurisdiction, status, effective_date, last_verified_at");
 
   // Count unread alerts
   const { count: unreadCount } = await supabase
@@ -128,12 +129,54 @@ export default async function DashboardPage() {
     .sort();
   const nextDeadline = futureDeadlines[0] ?? null;
 
+  // Most recent last_verified_at from regulations as fallback date
+  const lastVerifiedDates = allRegs
+    .filter((r) => r.last_verified_at)
+    .map((r) => r.last_verified_at as string)
+    .sort()
+    .reverse();
+  const lastDataDate = lastVerifiedDates[0] ?? null;
+
   const quickStats: QuickStats = {
     enactedCount,
     proposedCount,
     updatedThisMonth: userRecentUpdates.length,
     nextDeadline,
+    lastDataDate,
   };
+
+  // Auto-generate initial posture snapshot if none exist
+  if (!snapshots || snapshots.length === 0) {
+    const jScores: Record<string, number> = {};
+    for (const code of profile.jurisdictions as string[]) {
+      const totalInJ = regCounts[code] ?? 0;
+      const enactedInJ = allRegs.filter(
+        (r) => r.jurisdiction === code && (r.status === "enacted" || r.status === "in_effect")
+      ).length;
+      jScores[code] = totalInJ > 0 ? Math.round((enactedInJ / totalInJ) * 80 + 20) : 60;
+    }
+    const avgScore = Object.values(jScores).length > 0
+      ? Math.round(Object.values(jScores).reduce((a, b) => a + b, 0) / Object.values(jScores).length)
+      : 65;
+
+    await supabase.from("posture_snapshots").upsert({
+      user_id: user.id,
+      overall_score: avgScore,
+      jurisdiction_scores: jScores,
+      active_regulations: trackedRegCount,
+      open_findings: 0,
+      snapshot_date: new Date().toISOString().split("T")[0],
+    }, { onConflict: "user_id,snapshot_date" });
+
+    // Re-fetch so the UI has the data
+    const { data: freshSnapshots } = await supabase
+      .from("posture_snapshots")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("snapshot_date", { ascending: false })
+      .limit(30);
+    snapshots = freshSnapshots;
+  }
 
   // Jurisdiction extra data: audit coverage + last update date
   // Audit coverage: % of regulations in jurisdiction that have been audited

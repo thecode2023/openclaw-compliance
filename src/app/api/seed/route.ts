@@ -11,22 +11,31 @@ export async function POST(request: NextRequest) {
   const supabase = createAdminClient();
 
   try {
-    // Check if data already exists
-    const { count } = await supabase
+    // Get existing regulation titles for dedup
+    const { data: existingRegs } = await supabase
       .from("regulations")
-      .select("*", { count: "exact", head: true });
+      .select("id, title");
 
-    if (count && count > 0) {
-      return NextResponse.json({
-        message: `Database already seeded with ${count} regulations. Delete existing data first to re-seed.`,
-      });
-    }
+    const existingTitleMap = new Map(
+      (existingRegs ?? []).map((r) => [r.title.toLowerCase(), r.id])
+    );
 
-    // Insert regulations
-    const { data: insertedRegulations, error: regError } = await supabase
-      .from("regulations")
-      .insert(
-        seedRegulations.map((reg) => ({
+    let created = 0;
+    let skipped = 0;
+    const insertedRegulations: { id: string; title: string }[] = [];
+
+    // Insert regulations (skip duplicates by title)
+    for (const reg of seedRegulations) {
+      const existingId = existingTitleMap.get(reg.title.toLowerCase());
+      if (existingId) {
+        insertedRegulations.push({ id: existingId, title: reg.title });
+        skipped++;
+        continue;
+      }
+
+      const { data: inserted, error } = await supabase
+        .from("regulations")
+        .insert({
           title: reg.title,
           jurisdiction: reg.jurisdiction,
           jurisdiction_display: reg.jurisdiction_display,
@@ -41,43 +50,60 @@ export async function POST(request: NextRequest) {
           ai_classified: reg.ai_classified,
           ai_confidence: reg.ai_confidence,
           last_verified_at: new Date().toISOString(),
-        }))
-      )
-      .select();
+        })
+        .select("id, title")
+        .single();
 
-    if (regError) {
-      throw new Error(`Failed to insert regulations: ${regError.message}`);
+      if (error) {
+        console.error(`Failed to insert "${reg.title}":`, error.message);
+        insertedRegulations.push({ id: "", title: reg.title });
+        skipped++;
+      } else {
+        insertedRegulations.push(inserted);
+        created++;
+      }
     }
 
-    // Insert regulatory updates linked to the correct regulation IDs
-    const updates = seedUpdates.map((update) => ({
-      regulation_id: insertedRegulations[update.regulation_index].id,
-      update_type: update.update_type,
-      title: update.title,
-      summary: update.summary,
-      source_url: update.source_url,
-      verified: update.verified,
-      verified_by: update.verified_by,
-      verified_at: update.verified ? new Date().toISOString() : null,
-      detected_at: new Date().toISOString(),
-    }));
+    // Insert regulatory updates
+    let updatesCreated = 0;
+    for (const update of seedUpdates) {
+      const regRef = insertedRegulations[update.regulation_index];
+      if (!regRef?.id) continue;
 
-    const { error: updateError } = await supabase
-      .from("regulatory_updates")
-      .insert(updates);
+      // Check if update already exists by title
+      const { count } = await supabase
+        .from("regulatory_updates")
+        .select("*", { count: "exact", head: true })
+        .eq("title", update.title);
 
-    if (updateError) {
-      throw new Error(`Failed to insert updates: ${updateError.message}`);
+      if (count && count > 0) continue;
+
+      const { error } = await supabase
+        .from("regulatory_updates")
+        .insert({
+          regulation_id: regRef.id,
+          update_type: update.update_type,
+          title: update.title,
+          summary: update.summary,
+          source_url: update.source_url,
+          verified: update.verified,
+          verified_by: update.verified_by,
+          verified_at: update.verified ? new Date().toISOString() : null,
+          detected_at: new Date().toISOString(),
+        });
+
+      if (!error) updatesCreated++;
     }
 
     return NextResponse.json({
-      message: "Database seeded successfully",
-      regulations_count: insertedRegulations.length,
-      updates_count: updates.length,
+      message: "Seed completed",
+      regulations_created: created,
+      regulations_skipped: skipped,
+      regulations_total: seedRegulations.length,
+      updates_created: updatesCreated,
     });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Unknown error during seeding";
+    const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

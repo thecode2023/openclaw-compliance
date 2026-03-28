@@ -22,7 +22,7 @@ import {
   type UserProfile,
 } from "@/lib/types/user";
 
-const REGIONS = ["Europe", "North America", "Latin America", "Asia-Pacific", "International"] as const;
+const REGIONS = ["Europe", "North America", "Latin America", "Asia-Pacific", "Middle East & Africa", "International"] as const;
 
 interface ProfileEditorProps {
   profile: UserProfile;

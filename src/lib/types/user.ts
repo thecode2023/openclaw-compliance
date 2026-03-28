@@ -50,7 +50,7 @@ export interface JurisdictionOption {
   code: string;
   name: string;
   flag: string;
-  region: "Europe" | "North America" | "Latin America" | "Asia-Pacific" | "International";
+  region: "Europe" | "North America" | "Latin America" | "Asia-Pacific" | "Middle East & Africa" | "International";
 }
 
 export const JURISDICTION_OPTIONS: JurisdictionOption[] = [
@@ -64,6 +64,11 @@ export const JURISDICTION_OPTIONS: JurisdictionOption[] = [
   { code: "US-CO", name: "Colorado", flag: "🇺🇸", region: "North America" },
   { code: "US-IL", name: "Illinois", flag: "🇺🇸", region: "North America" },
   { code: "US-CA", name: "California", flag: "🇺🇸", region: "North America" },
+  { code: "US-CT", name: "Connecticut", flag: "🇺🇸", region: "North America" },
+  { code: "US-UT", name: "Utah", flag: "🇺🇸", region: "North America" },
+  { code: "US-TN", name: "Tennessee", flag: "🇺🇸", region: "North America" },
+  { code: "US-NYC", name: "New York City", flag: "🇺🇸", region: "North America" },
+  { code: "US-MD", name: "Maryland", flag: "🇺🇸", region: "North America" },
   { code: "CA", name: "Canada", flag: "🇨🇦", region: "North America" },
 
   // Latin America
@@ -72,6 +77,15 @@ export const JURISDICTION_OPTIONS: JurisdictionOption[] = [
   // Asia-Pacific
   { code: "SG", name: "Singapore", flag: "🇸🇬", region: "Asia-Pacific" },
   { code: "ID", name: "Indonesia", flag: "🇮🇩", region: "Asia-Pacific" },
+  { code: "KR", name: "South Korea", flag: "🇰🇷", region: "Asia-Pacific" },
+  { code: "JP", name: "Japan", flag: "🇯🇵", region: "Asia-Pacific" },
+  { code: "CN", name: "China", flag: "🇨🇳", region: "Asia-Pacific" },
+  { code: "AU", name: "Australia", flag: "🇦🇺", region: "Asia-Pacific" },
+  { code: "IN", name: "India", flag: "🇮🇳", region: "Asia-Pacific" },
+
+  // Middle East & Africa
+  { code: "SA", name: "Saudi Arabia", flag: "🇸🇦", region: "Middle East & Africa" },
+  { code: "ZA", name: "South Africa", flag: "🇿🇦", region: "Middle East & Africa" },
 
   // International
   { code: "INTL", name: "International (OECD)", flag: "🌐", region: "International" },

@@ -181,9 +181,11 @@ export function DashboardClient({
                   icon={Clock}
                   label="Last Updated"
                   displayValue={
-                    latestSnapshot
-                      ? format(new Date(latestSnapshot.snapshot_date), "MMM d")
-                      : "\u2014"
+                    quickStats.lastDataDate
+                      ? format(new Date(quickStats.lastDataDate), "MMM d")
+                      : latestSnapshot
+                        ? format(new Date(latestSnapshot.snapshot_date), "MMM d")
+                        : "\u2014"
                   }
                   accent="green"
                 />
@@ -247,7 +249,9 @@ export function DashboardClient({
         jurisdictions={(() => {
           const allCodes = [
             "EU", "GB", "US", "US-TX", "US-CO", "US-CA", "US-IL",
-            "CA", "BR", "SG", "ID", "INTL",
+            "US-CT", "US-UT", "US-TN", "US-NYC", "US-MD",
+            "CA", "BR", "SG", "ID", "KR", "JP", "CN", "AU", "IN",
+            "SA", "ZA", "INTL",
           ];
           const trackedSet = new Set(profile.jurisdictions);
           const recentSet = new Set(recentUpdateJurisdictions);
