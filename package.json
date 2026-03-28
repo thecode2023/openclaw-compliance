@@ -1,6 +1,8 @@
 {
   "name": "complyze",
   "version": "0.1.0",
+  "description": "Complyze — AI Regulatory Intelligence Platform. Track global AI regulations and audit agent configurations against live regulatory data.",
+  "homepage": "https://complyze.dev",
   "private": true,
   "scripts": {
     "dev": "next dev",

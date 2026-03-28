@@ -43,9 +43,11 @@ async function getStats() {
 async function getRecentUpdates() {
   const supabase = createAdminClient();
 
+  // Only show verified/curated updates on the landing page — not raw ingestion artifacts
   const { data } = await supabase
     .from("regulatory_updates")
     .select("*")
+    .eq("verified", true)
     .order("detected_at", { ascending: false })
     .limit(5);
 

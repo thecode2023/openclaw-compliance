@@ -161,4 +161,19 @@ Each jurisdiction can be moved between categories via the dashboard command cent
 
 ## Screenshots
 
-> Screenshots available at `/docs/screenshots/` (placeholder)
+### Landing Page
+![Landing page hero](docs/screenshots/landing-hero.png)
+
+### Regulatory Feed (Table View)
+![Regulatory feed table view](docs/screenshots/feed-table.png)
+
+### Audit Results with Findings
+![Audit results with findings](docs/screenshots/audit-results.png)
+
+### Dashboard with World Map
+![Dashboard with world map](docs/screenshots/dashboard-map.png)
+
+### Cost Analysis Tab
+![Cost analysis breakdown](docs/screenshots/cost-analysis.png)
+
+> Add screenshot files to `docs/screenshots/` to populate these images.
