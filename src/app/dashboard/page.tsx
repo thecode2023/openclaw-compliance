@@ -230,6 +230,12 @@ export default async function DashboardPage() {
     }
   });
 
+  // Count pending regulations awaiting review
+  const { count: pendingCount } = await supabase
+    .from("pending_regulations")
+    .select("*", { count: "exact", head: true })
+    .in("review_status", ["pending", "uncertain"]);
+
   // Count requiring attention: jurisdictions with velocity high or score < 50
   const attentionCount = trackedRegs.filter(
     (r) =>
@@ -253,6 +259,7 @@ export default async function DashboardPage() {
       costExposure={costExposure}
       recentUpdateJurisdictions={Array.from(recentUpdateJurisdictions)}
       allRegCounts={regCounts}
+      pendingCount={pendingCount ?? 0}
     />
   );
 }

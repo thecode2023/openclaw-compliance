@@ -56,6 +56,7 @@ interface DashboardClientProps {
   costExposure: CostExposure;
   recentUpdateJurisdictions: string[];
   allRegCounts: Record<string, number>;
+  pendingCount: number;
 }
 
 export function DashboardClient({
@@ -73,6 +74,7 @@ export function DashboardClient({
   costExposure,
   recentUpdateJurisdictions,
   allRegCounts,
+  pendingCount,
 }: DashboardClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -315,6 +317,14 @@ export function DashboardClient({
             <UserCog className="mr-1.5 h-3.5 w-3.5" />
             Edit Profile
           </Button>
+          {pendingCount > 0 && (
+            <Button variant="outline" size="sm" asChild className="text-amber-400 border-amber-500/30">
+              <a href="/dashboard/pending">
+                <Bell className="mr-1.5 h-3.5 w-3.5" />
+                {pendingCount} Pending Review
+              </a>
+            </Button>
+          )}
         </div>
       </div>
 

@@ -5,9 +5,13 @@ import { buildClassifyRegulationPrompt } from "@/lib/ai/prompts/classify-regulat
 import { buildExtractUpdatePrompt } from "@/lib/ai/prompts/extract-update";
 import { fetchAllRSSFeeds } from "@/lib/utils/rss";
 import { validateCronSecret } from "@/lib/auth/cron";
-import type { ClassifiedRegulation, ExtractedUpdate } from "@/lib/ai/types";
+import { isLikelyRelevant } from "@/lib/utils/relevance-filter";
+import { computeContentHash } from "@/lib/utils/content-hash";
+import { buildClassifyItemPrompt } from "@/lib/ai/prompts/classify-item";
+import { buildVerifyRegulationPrompt } from "@/lib/ai/prompts/verify-regulation";
+import type { ClassifiedRegulation, ExtractedUpdate, Pass1Result, Pass2Result } from "@/lib/ai/types";
 
-const MAX_API_CALLS = 20;
+const MAX_API_CALLS = 40;
 
 export async function POST(request: NextRequest) {
   const authError = validateCronSecret(request);
@@ -49,7 +53,7 @@ export async function POST(request: NextRequest) {
     );
 
     // Fetch RSS feeds (individual feed failures are logged but don't block the pipeline)
-    const feedResult = await fetchAllRSSFeeds();
+    const feedResult = await fetchAllRSSFeeds(supabase);
     const feedItems = feedResult.items;
 
     // Log any feed errors
@@ -267,6 +271,112 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // ==================================================================
+    // DISCOVERY PIPELINE — detect new regulations via two-pass Gemini
+    // ==================================================================
+    let discoveryProcessed = 0;
+    let discoveryPending = 0;
+    let discoveryNoise = 0;
+
+    for (const item of feedItems) {
+      if (apiCallCount >= MAX_API_CALLS) break;
+
+      // Pre-filter: skip items that don't mention AI + regulation keywords
+      if (!isLikelyRelevant(item)) {
+        discoveryNoise++;
+        continue;
+      }
+
+      // Dedup: check if we already have this item pending
+      const hash = await computeContentHash(item.title, item.link);
+      const { count: existingCount } = await supabase
+        .from("pending_regulations")
+        .select("*", { count: "exact", head: true })
+        .eq("content_hash", hash)
+        .eq("review_status", "pending");
+
+      if (existingCount && existingCount > 0) continue;
+
+      try {
+        // Pass 1: Classification
+        const pass1Prompt = buildClassifyItemPrompt(
+          { title: String(item.title), source: String(item.source), link: String(item.link), contentSnippet: String(item.contentSnippet) },
+          existingTitles
+        );
+        apiCallCount++;
+        const pass1Raw = await callGeminiWithRetry(pass1Prompt);
+        const pass1 = parseJsonResponse(pass1Raw) as Pass1Result | null;
+
+        if (!pass1 || pass1.confidence <= 0.4) {
+          discoveryNoise++;
+          continue;
+        }
+
+        if (pass1.classification === "noise") {
+          discoveryNoise++;
+          continue;
+        }
+
+        // For updates/enforcement/guidance — handled by existing pipeline above, skip here
+        if (pass1.classification !== "new_regulation") {
+          continue;
+        }
+
+        // Pass 2: Verification (only for new_regulation)
+        const pass2Prompt = buildVerifyRegulationPrompt(
+          { title: String(item.title), source: String(item.source), link: String(item.link), contentSnippet: String(item.contentSnippet) },
+          { classification: pass1.classification, confidence: pass1.confidence, reasoning: pass1.reasoning }
+        );
+        apiCallCount++;
+        const pass2Raw = await callGeminiWithRetry(pass2Prompt);
+        const pass2 = parseJsonResponse(pass2Raw) as Pass2Result | null;
+
+        if (!pass2 || pass2.verification === "disagree") {
+          discoveryNoise++;
+          continue;
+        }
+
+        // Insert pending regulation
+        const draft = pass2.draft;
+        await supabase.from("pending_regulations").insert({
+          title: String(draft.title || item.title),
+          jurisdiction: draft.jurisdiction,
+          jurisdiction_display: draft.jurisdiction_display,
+          status: draft.status,
+          category: draft.category,
+          summary: draft.summary,
+          key_requirements: draft.key_requirements || [],
+          compliance_implications: draft.compliance_implications || [],
+          effective_date: draft.effective_date,
+          source_url: String(draft.source_url || item.link),
+          source_name: draft.source_name,
+          pass1_classification: pass1.classification,
+          pass1_confidence: pass1.confidence,
+          pass2_classification: pass2.verification,
+          pass2_confidence: pass2.confidence,
+          review_status: pass2.verification === "uncertain" ? "uncertain" : "pending",
+          feed_source: item.source,
+          raw_title: String(item.title),
+          raw_snippet: String(item.contentSnippet).slice(0, 2000),
+          raw_link: String(item.link),
+          content_hash: hash,
+        });
+
+        discoveryPending++;
+        discoveryProcessed++;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error(`[Discovery] Failed for "${String(item.title)}": ${msg}`);
+        discoveryProcessed++;
+      }
+    }
+
+    await logEntry("discovery_pipeline", "success", {
+      items_processed: discoveryProcessed + discoveryNoise,
+      items_created: discoveryPending,
+      items_skipped: discoveryNoise,
+    });
+
     await logEntry("ingestion_run", "success", {
       items_processed: feedItems.length,
       items_created: totalCreated,
@@ -284,6 +394,11 @@ export async function POST(request: NextRequest) {
       updates_recorded: totalUpdated,
       items_skipped: totalSkipped,
       alerts_generated: totalAlerts,
+      discovery: {
+        processed: discoveryProcessed,
+        pending_created: discoveryPending,
+        noise_filtered: discoveryNoise,
+      },
     });
   } catch (error) {
     const errorMsg =
