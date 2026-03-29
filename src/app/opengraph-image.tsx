@@ -13,91 +13,75 @@ export default function OGImage() {
           display: "flex",
           flexDirection: "column",
           justifyContent: "center",
-          alignItems: "flex-start",
           width: "100%",
           height: "100%",
           backgroundColor: "#0a0e17",
           padding: "80px",
-          fontFamily: "monospace",
         }}
       >
-        {/* Grid overlay */}
         <div
           style={{
-            position: "absolute",
-            inset: 0,
-            backgroundImage:
-              "linear-gradient(rgba(59,130,246,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.04) 1px, transparent 1px)",
-            backgroundSize: "48px 48px",
+            display: "flex",
+            alignItems: "center",
+            gap: "16px",
+            marginBottom: "24px",
           }}
-        />
-
-        {/* Shield icon + title */}
-        <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "16px" }}>
+        >
           <div
             style={{
-              width: "48px",
-              height: "48px",
-              borderRadius: "12px",
-              background: "linear-gradient(135deg, #3b82f6, #1d4ed8)",
+              width: "44px",
+              height: "44px",
+              borderRadius: "10px",
+              background: "#3b82f6",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               color: "white",
-              fontSize: "24px",
+              fontSize: "22px",
             }}
           >
-            &#x2713;
+            ✓
           </div>
           <span
             style={{
               fontSize: "20px",
               color: "#64748b",
               letterSpacing: "0.15em",
-              textTransform: "uppercase" as const,
             }}
           >
             COMPLYZE
           </span>
         </div>
 
-        {/* Headline */}
         <div
           style={{
-            fontSize: "56px",
+            fontSize: "52px",
             fontWeight: 700,
             color: "#f8fafc",
-            lineHeight: 1.15,
-            marginBottom: "20px",
-            textShadow: "0 0 40px rgba(59,130,246,0.2)",
+            lineHeight: 1.2,
+            marginBottom: "24px",
           }}
         >
-          AI Regulatory Intelligence
-          <br />
-          Platform
+          AI Regulatory Intelligence Platform
         </div>
 
-        {/* Stat line */}
         <div
           style={{
             display: "flex",
-            gap: "24px",
+            gap: "20px",
             fontSize: "18px",
             color: "#94a3b8",
           }}
         >
-          <span>
-            <span style={{ color: "#e2e8f0", fontWeight: 600 }}>42+</span> Regulations
-          </span>
+          <span style={{ color: "#e2e8f0", fontWeight: 600 }}>42+</span>
+          <span>Regulations</span>
           <span style={{ color: "#334155" }}>|</span>
-          <span>
-            <span style={{ color: "#e2e8f0", fontWeight: 600 }}>24</span> Jurisdictions
-          </span>
+          <span style={{ color: "#e2e8f0", fontWeight: 600 }}>24</span>
+          <span>Jurisdictions</span>
           <span style={{ color: "#334155" }}>|</span>
           <span style={{ color: "#22c55e" }}>Open Source</span>
         </div>
 
-        {/* Domain */}
         <div
           style={{
             position: "absolute",
@@ -105,7 +89,7 @@ export default function OGImage() {
             right: "80px",
             fontSize: "16px",
             color: "#3b82f6",
-            letterSpacing: "0.1em",
+            letterSpacing: "0.08em",
           }}
         >
           complyze.dev
