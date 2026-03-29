@@ -1,6 +1,5 @@
 import { ImageResponse } from "next/og";
 
-export const runtime = "edge";
 export const alt = "Complyze — AI Regulatory Intelligence Platform";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
@@ -13,89 +12,28 @@ export default function OGImage() {
           display: "flex",
           flexDirection: "column",
           justifyContent: "center",
-          width: "100%",
-          height: "100%",
+          alignItems: "flex-start",
+          width: 1200,
+          height: 630,
           backgroundColor: "#0a0e17",
-          padding: "80px",
+          padding: 80,
+          color: "white",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "16px",
-            marginBottom: "24px",
-          }}
-        >
-          <div
-            style={{
-              width: "44px",
-              height: "44px",
-              borderRadius: "10px",
-              background: "#3b82f6",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "white",
-              fontSize: "22px",
-            }}
-          >
-            ✓
-          </div>
-          <span
-            style={{
-              fontSize: "20px",
-              color: "#64748b",
-              letterSpacing: "0.15em",
-            }}
-          >
-            COMPLYZE
-          </span>
+        <div style={{ display: "flex", fontSize: 22, color: "#64748b", letterSpacing: 3, marginBottom: 24 }}>
+          COMPLYZE
         </div>
-
-        <div
-          style={{
-            fontSize: "52px",
-            fontWeight: 700,
-            color: "#f8fafc",
-            lineHeight: 1.2,
-            marginBottom: "24px",
-          }}
-        >
+        <div style={{ display: "flex", fontSize: 48, fontWeight: 700, color: "#f8fafc", marginBottom: 16, lineHeight: 1.2 }}>
           AI Regulatory Intelligence Platform
         </div>
-
-        <div
-          style={{
-            display: "flex",
-            gap: "20px",
-            fontSize: "18px",
-            color: "#94a3b8",
-          }}
-        >
-          <span style={{ color: "#e2e8f0", fontWeight: 600 }}>42+</span>
-          <span>Regulations</span>
-          <span style={{ color: "#334155" }}>|</span>
-          <span style={{ color: "#e2e8f0", fontWeight: 600 }}>24</span>
-          <span>Jurisdictions</span>
-          <span style={{ color: "#334155" }}>|</span>
-          <span style={{ color: "#22c55e" }}>Open Source</span>
+        <div style={{ display: "flex", fontSize: 20, color: "#94a3b8", gap: 12 }}>
+          42+ Regulations · 24 Jurisdictions · Open Source
         </div>
-
-        <div
-          style={{
-            position: "absolute",
-            bottom: "40px",
-            right: "80px",
-            fontSize: "16px",
-            color: "#3b82f6",
-            letterSpacing: "0.08em",
-          }}
-        >
+        <div style={{ display: "flex", position: "absolute", bottom: 40, right: 80, fontSize: 16, color: "#3b82f6" }}>
           complyze.dev
         </div>
       </div>
     ),
-    { ...size }
+    { width: 1200, height: 630 }
   );
 }

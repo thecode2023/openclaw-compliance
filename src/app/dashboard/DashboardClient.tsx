@@ -19,7 +19,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { InfoPopover } from "@/components/ui/info-popover";
 import { ComplianceGauge } from "@/components/dashboard/ComplianceGauge";
 import { ComplianceTrend, type PostureSnapshot } from "@/components/dashboard/ComplianceTrend";
 import {
@@ -156,9 +155,9 @@ export function DashboardClient({
         <div className="absolute inset-0 grid-bg" />
         <div className="relative p-4 sm:p-5">
           <div className="flex flex-col sm:flex-row items-center gap-5">
-            <div className="relative shrink-0">
+            <div className="shrink-0 flex flex-col items-center gap-1">
               <ComplianceGauge score={overallScore} size="lg" label="Overall Score" />
-              <ScoreInfoButton />
+              <ScoreInfoToggle />
             </div>
             <div className="flex-1 w-full space-y-2.5">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 w-full">
@@ -393,12 +392,21 @@ function StatPill({
 /* Score Info Popover                                                   */
 /* ------------------------------------------------------------------ */
 
-function ScoreInfoButton() {
+function ScoreInfoToggle() {
+  const [open, setOpen] = useState(false);
   return (
-    <div className="absolute -top-1 -right-1">
-      <InfoPopover title="Compliance Score">
-        Your compliance posture score (0-100) based on regulation coverage across your tracked jurisdictions, latest audit findings severity, and ratio of enacted vs proposed regulations. Higher is better. Run audits to improve your score.
-      </InfoPopover>
+    <div className="text-center">
+      <button
+        onClick={() => setOpen(!open)}
+        className="text-[10px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+      >
+        {open ? "Hide details" : "How is this scored?"}
+      </button>
+      {open && (
+        <p className="mt-1 text-[10px] text-[var(--text-secondary)] leading-relaxed max-w-[180px]">
+          Posture score (0-100) based on regulation coverage, audit findings severity, and enacted vs proposed ratio. Run audits to improve.
+        </p>
+      )}
     </div>
   );
 }
