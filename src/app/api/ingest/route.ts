@@ -48,8 +48,16 @@ export async function POST(request: NextRequest) {
       existingTitles.map((t) => t.toLowerCase())
     );
 
-    // Fetch RSS feeds
-    const feedItems = await fetchAllRSSFeeds();
+    // Fetch RSS feeds (individual feed failures are logged but don't block the pipeline)
+    const feedResult = await fetchAllRSSFeeds();
+    const feedItems = feedResult.items;
+
+    // Log any feed errors
+    for (const feedError of feedResult.errors) {
+      await logEntry(feedError.source, "failure", {
+        error_message: `RSS feed error: ${feedError.error}`,
+      });
+    }
 
     let totalCreated = 0;
     let totalUpdated = 0;
@@ -270,6 +278,7 @@ export async function POST(request: NextRequest) {
       run_id: runId,
       status: "completed",
       feed_items_fetched: feedItems.length,
+      feed_errors: feedResult.errors.length,
       api_calls_made: apiCallCount,
       regulations_created: totalCreated,
       updates_recorded: totalUpdated,
