@@ -96,7 +96,7 @@ interface FeedClientProps {
   updates: RegulatoryUpdate[];
   velocityScores: VelocityMap;
   jurisdictionOptions: { value: string; label: string }[];
-  lastVerified: string | null;
+  lastChecked: string | null;
   statusCounts: Record<string, number>;
 }
 
@@ -112,7 +112,7 @@ export function FeedClient({
   updates,
   velocityScores,
   jurisdictionOptions: jurisdictionOptionsProp,
-  lastVerified,
+  lastChecked,
   statusCounts,
 }: FeedClientProps) {
   const jurisdictionOptions = useMemo(
@@ -236,13 +236,13 @@ export function FeedClient({
             )}
           </div>
           {/* Data freshness */}
-          {lastVerified && (
+          {lastChecked && (
             <p className="text-[10px] text-[var(--text-tertiary)] mt-1">
-              Data last updated:{" "}
+              Last checked:{" "}
               <span className="font-mono tabular-nums">
-                {format(new Date(lastVerified), "MMM d, yyyy 'at' h:mm a")}
+                {format(new Date(lastChecked), "MMM d, yyyy")}
               </span>
-              {" · Next check: daily at 6:00 AM UTC"}
+              {" · Checks daily at 6:00 AM UTC"}
             </p>
           )}
         </div>

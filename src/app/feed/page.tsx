@@ -94,11 +94,14 @@ async function getDistinctJurisdictions() {
 
 async function getFeedMeta() {
   const supabase = createAdminClient();
-  const [freshnessRes, allRegsRes] = await Promise.all([
+  const [lastRunRes, allRegsRes] = await Promise.all([
+    // Use ingestion_logs to find when the pipeline last ran successfully
     supabase
-      .from("regulations")
-      .select("last_verified_at")
-      .order("last_verified_at", { ascending: false })
+      .from("ingestion_logs")
+      .select("completed_at")
+      .eq("source_name", "ingestion_run")
+      .eq("status", "success")
+      .order("completed_at", { ascending: false })
       .limit(1)
       .single(),
     supabase.from("regulations").select("status"),
@@ -110,7 +113,7 @@ async function getFeedMeta() {
   });
 
   return {
-    lastVerified: freshnessRes.data?.last_verified_at ?? null,
+    lastChecked: lastRunRes.data?.completed_at ?? null,
     statusCounts,
   };
 }
@@ -141,7 +144,7 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
       updates={updates}
       velocityScores={velocityScores}
       jurisdictionOptions={jurisdictionOptions}
-      lastVerified={feedMeta.lastVerified}
+      lastChecked={feedMeta.lastChecked}
       statusCounts={feedMeta.statusCounts}
     />
   );

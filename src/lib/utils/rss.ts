@@ -1,9 +1,10 @@
 import Parser from "rss-parser";
 
 const parser = new Parser({
-  timeout: 10000,
+  timeout: 15000,
   headers: {
     "User-Agent": "Complyze-Regulatory-Intelligence/1.0",
+    "Accept": "application/rss+xml, application/atom+xml, application/xml, text/xml",
   },
 });
 
