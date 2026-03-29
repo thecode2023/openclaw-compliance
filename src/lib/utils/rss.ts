@@ -38,11 +38,6 @@ export const rssSources: RSSSource[] = [
     url: "https://eur-lex.europa.eu/EN/display-feed.rss?rssId=161",
     category: "EU",
   },
-  {
-    name: "UK Legislation — New Legislation",
-    url: "https://www.legislation.gov.uk/new/data.feed",
-    category: "UK",
-  },
 ];
 
 export interface FeedResult {
