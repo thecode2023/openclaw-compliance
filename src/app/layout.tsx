@@ -1,17 +1,18 @@
 import type { Metadata } from "next";
-import { JetBrains_Mono, DM_Sans } from "next/font/google";
+import { Fira_Code, Fira_Sans } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/Header";
 import { AuthProvider } from "@/components/providers/AuthProvider";
+import { ChatWidget } from "@/components/chat/ChatWidget";
 
-const dmSans = DM_Sans({
-  variable: "--font-dm-sans",
+const firaSans = Fira_Sans({
+  variable: "--font-fira-sans",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["300", "400", "500", "600", "700"],
 });
 
-const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-jetbrains-mono",
+const firaCode = Fira_Code({
+  variable: "--font-fira-code",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
 });
@@ -52,7 +53,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${dmSans.variable} ${jetbrainsMono.variable} dark h-full antialiased`}
+      className={`${firaSans.variable} ${firaCode.variable} dark h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <AuthProvider>
@@ -63,6 +64,7 @@ export default function RootLayout({
               Complyze provides regulatory intelligence for informational purposes only. This is not legal advice. Consult qualified counsel for compliance decisions.
             </p>
           </footer>
+          <ChatWidget />
         </AuthProvider>
       </body>
     </html>
