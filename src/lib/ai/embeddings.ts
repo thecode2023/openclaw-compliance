@@ -1,9 +1,7 @@
-import { genAI } from "./client";
 import type { Regulation, RegulatoryUpdate } from "@/lib/types/regulation";
 
-const embeddingModel = genAI.getGenerativeModel({
-  model: "text-embedding-004",
-});
+const EMBEDDING_API_URL =
+  "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001";
 
 export interface EmbeddingChunk {
   regulation_id: string;
@@ -88,44 +86,60 @@ export function chunkRegulation(
   return chunks;
 }
 
-export async function batchEmbed(texts: string[]): Promise<number[][]> {
-  const allEmbeddings: number[][] = [];
-  const BATCH_SIZE = 100;
+async function embedSingle(text: string): Promise<number[]> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error("GEMINI_API_KEY is not set");
 
-  for (let i = 0; i < texts.length; i += BATCH_SIZE) {
-    const batch = texts.slice(i, i + BATCH_SIZE);
-    let lastError: Error | null = null;
+  const res = await fetch(
+    `${EMBEDDING_API_URL}:embedContent?key=${apiKey}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "models/gemini-embedding-001",
+        content: { parts: [{ text }] },
+        outputDimensionality: 768,
+      }),
+    }
+  );
 
-    for (let attempt = 0; attempt < 3; attempt++) {
-      try {
-        const result = await embeddingModel.batchEmbedContents({
-          requests: batch.map((text) => ({
-            content: { parts: [{ text }], role: "user" },
-          })),
-        });
-        allEmbeddings.push(
-          ...result.embeddings.map((e) => e.values)
-        );
-        lastError = null;
-        break;
-      } catch (error) {
-        lastError =
-          error instanceof Error ? error : new Error(String(error));
-        if (
-          lastError.message.includes("400") ||
-          lastError.message.includes("401") ||
-          lastError.message.includes("403")
-        ) {
-          throw lastError;
-        }
-        if (attempt < 2) {
-          const delay = Math.pow(2, attempt) * 1000 + Math.random() * 500;
-          await new Promise((r) => setTimeout(r, delay));
-        }
+  if (!res.ok) {
+    const errBody = await res.text();
+    throw new Error(`Embedding API ${res.status}: ${errBody}`);
+  }
+
+  const data = await res.json();
+  return data.embedding.values;
+}
+
+async function embedWithRetry(text: string): Promise<number[]> {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      return await embedSingle(text);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      if (msg.includes("400") || msg.includes("401") || msg.includes("403")) {
+        throw error;
+      }
+      if (attempt < 2) {
+        const delay = Math.pow(2, attempt) * 1000 + Math.random() * 500;
+        await new Promise((r) => setTimeout(r, delay));
+      } else {
+        throw error;
       }
     }
+  }
+  throw new Error("Embedding failed after retries");
+}
 
-    if (lastError) throw lastError;
+export async function batchEmbed(texts: string[]): Promise<number[][]> {
+  const allEmbeddings: number[][] = [];
+  const CONCURRENCY = 5;
+
+  for (let i = 0; i < texts.length; i += CONCURRENCY) {
+    const batch = texts.slice(i, i + CONCURRENCY);
+    const results = await Promise.all(batch.map((t) => embedWithRetry(t)));
+    allEmbeddings.push(...results);
   }
 
   return allEmbeddings;
