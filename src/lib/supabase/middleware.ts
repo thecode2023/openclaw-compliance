@@ -36,7 +36,8 @@ export async function updateSession(request: NextRequest) {
   // Protect /dashboard routes — redirect unauthenticated users to sign-in
   if (
     !user &&
-    request.nextUrl.pathname.startsWith("/dashboard")
+    (request.nextUrl.pathname.startsWith("/dashboard") ||
+      request.nextUrl.pathname.startsWith("/policies"))
   ) {
     const url = request.nextUrl.clone();
     url.pathname = "/auth/signin";

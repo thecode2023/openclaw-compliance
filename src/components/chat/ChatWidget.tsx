@@ -12,6 +12,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useChat } from "@/hooks/useChat";
 import type { Citation } from "@/lib/types/chat";
@@ -268,7 +269,7 @@ export function ChatWidget() {
                             <>
                               {msg.content ? (
                                 <div className="prose prose-sm prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p]:my-1.5 [&_ul]:my-1.5 [&_ol]:my-1.5 [&_li]:my-0.5 [&_h1]:text-base [&_h2]:text-sm [&_h3]:text-sm [&_code]:text-xs [&_pre]:text-xs">
-                                  <ReactMarkdown>{msg.content}</ReactMarkdown>
+                                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
                                 </div>
                               ) : isStreaming ? (
                                 <TypingIndicator />

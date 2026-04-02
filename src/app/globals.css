@@ -5,50 +5,40 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  /* ── Fonts (Complyze: Fira Sans body / Fira Code headings) ── */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
   --font-sans: var(--font-fira-sans);
   --font-mono: var(--font-fira-code);
   --font-heading: var(--font-fira-code);
-
-  /* ── Semantic colours (resolved from CSS vars) ── */
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --color-cta: var(--cta);
-
-  /* ── Charts ── */
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-
-  /* ── Sidebar ── */
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-
-  /* ── Radii ── */
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -56,93 +46,78 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
-
-  /* ── NOTE: Do NOT define --spacing-* or --shadow-* here ──
-     Tailwind v4 uses these namespaces for its default scale.
-     Overriding them breaks all numeric utilities (p-4, gap-2, etc.).
-     Custom spacing tokens live in :root as --space-* instead. ── */
 }
 
 /* ================================================================ */
-/* Light mode (Complyze design system — Flat Design / Indigo)       */
+/* Base theme — Complyze deep indigo (dark-only app)                 */
 /* ================================================================ */
 :root {
   /* shadcn semantic tokens */
-  --background: #F5F3FF;
-  --foreground: #1E1B4B;
-  --card: #FFFFFF;
-  --card-foreground: #1E1B4B;
-  --popover: #FFFFFF;
-  --popover-foreground: #1E1B4B;
-  --primary: #6366F1;
-  --primary-foreground: #FFFFFF;
-  --secondary: #818CF8;
-  --secondary-foreground: #FFFFFF;
-  --muted: #EDE9FE;
-  --muted-foreground: #4C4687;
-  --accent: #EDE9FE;
-  --accent-foreground: #1E1B4B;
-  --cta: #10B981;
+  --background: #0B0A1A;
+  --foreground: #E2E0F0;
+  --card: #12112A;
+  --card-foreground: #E2E0F0;
+  --popover: #12112A;
+  --popover-foreground: #E2E0F0;
+  --primary: #818CF8;
+  --primary-foreground: #0B0A1A;
+  --secondary: #6366F1;
+  --secondary-foreground: #E2E0F0;
+  --muted: #1C1A38;
+  --muted-foreground: #8B87B8;
+  --accent: #1C1A38;
+  --accent-foreground: #E2E0F0;
   --destructive: #EF4444;
-  --border: #DDD6FE;
-  --input: #DDD6FE;
-  --ring: rgba(99, 102, 241, 0.4);
-  --chart-1: #6366F1;
-  --chart-2: #10B981;
-  --chart-3: #F59E0B;
-  --chart-4: #818CF8;
-  --chart-5: #EF4444;
-  --radius: 0.5rem;
-  --sidebar: #EDE9FE;
-  --sidebar-foreground: #1E1B4B;
-  --sidebar-primary: #6366F1;
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #DDD6FE;
-  --sidebar-accent-foreground: #1E1B4B;
-  --sidebar-border: #DDD6FE;
-  --sidebar-ring: rgba(99, 102, 241, 0.4);
+  --border: rgba(129, 140, 248, 0.15);
+  --input: rgba(129, 140, 248, 0.15);
+  --ring: rgba(129, 140, 248, 0.4);
+  --chart-1: #818CF8;
+  --chart-2: #34D399;
+  --chart-3: #FBBF24;
+  --chart-4: #A5B4FC;
+  --chart-5: #F87171;
+  --radius: 0.75rem;
+  --sidebar: #0E0D22;
+  --sidebar-foreground: #E2E0F0;
+  --sidebar-primary: #818CF8;
+  --sidebar-primary-foreground: #0B0A1A;
+  --sidebar-accent: #1C1A38;
+  --sidebar-accent-foreground: #E2E0F0;
+  --sidebar-border: rgba(129, 140, 248, 0.08);
+  --sidebar-ring: rgba(129, 140, 248, 0.4);
 
   /* Complyze design tokens */
-  --bg-primary: #F5F3FF;
-  --bg-secondary: #FFFFFF;
-  --bg-tertiary: #EDE9FE;
-  --bg-surface: #FFFFFF;
-  --border-dim: #E9E5FA;
-  --border-subtle: #DDD6FE;
-  --border-accent: rgba(99, 102, 241, 0.3);
-  --text-primary: #1E1B4B;
-  --text-secondary: #4C4687;
-  --text-tertiary: #6D67A0;
-  --text-bright: #0F0A2E;
-  --accent-primary: #6366F1;
-  --accent-glow: rgba(99, 102, 241, 0.15);
-  --accent-border: rgba(99, 102, 241, 0.4);
+  --bg-primary: #0B0A1A;
+  --bg-secondary: #12112A;
+  --bg-tertiary: #1C1A38;
+  --bg-surface: #0E0D22;
+  --border-dim: rgba(129, 140, 248, 0.08);
+  --border-subtle: rgba(129, 140, 248, 0.15);
+  --border-accent: rgba(129, 140, 248, 0.3);
+  --text-primary: #E2E0F0;
+  --text-secondary: #A09CC0;
+  --text-tertiary: #8B87B8;
+  --text-bright: #F5F3FF;
+  --accent-primary: #818CF8;
+  --accent-glow: rgba(129, 140, 248, 0.15);
+  --accent-border: rgba(129, 140, 248, 0.4);
   --critical: #EF4444;
   --critical-glow: rgba(239, 68, 68, 0.12);
   --high: #F97316;
   --high-glow: rgba(249, 115, 22, 0.12);
   --medium: #EAB308;
   --medium-glow: rgba(234, 179, 8, 0.12);
-  --low: #10B981;
-  --low-glow: rgba(16, 185, 129, 0.12);
-  --info: #06B6D4;
-  --info-glow: rgba(6, 182, 212, 0.12);
-  --gradient-card: linear-gradient(135deg, #FFFFFF 0%, #EDE9FE 100%);
-  --gradient-hero: linear-gradient(180deg, #F5F3FF 0%, #EDE9FE 50%, #F5F3FF 100%);
-  --gradient-accent: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%);
-
-  /* Spacing scale */
-  --space-xs: 0.25rem;
-  --space-sm: 0.5rem;
-  --space-md: 1rem;
-  --space-lg: 1.5rem;
-  --space-xl: 2rem;
-  --space-2xl: 3rem;
-  --space-3xl: 4rem;
+  --low: #34D399;
+  --low-glow: rgba(52, 211, 153, 0.12);
+  --info: #22D3EE;
+  --info-glow: rgba(34, 211, 238, 0.12);
+  --gradient-card: linear-gradient(135deg, #12112A 0%, #1C1A38 100%);
+  --gradient-hero: linear-gradient(180deg, #0B0A1A 0%, #15133A 50%, #0B0A1A 100%);
+  --gradient-accent: linear-gradient(135deg, #818CF8 0%, #6366F1 100%);
 }
 
 /* ================================================================ */
-/* Dark mode (Complyze — deep indigo variant)                       */
+/* Dark mode (mirrors :root — app is dark-only via class="dark")     */
 /* ================================================================ */
 .dark {
   --background: #0B0A1A;
@@ -159,7 +134,6 @@
   --muted-foreground: #8B87B8;
   --accent: #1C1A38;
   --accent-foreground: #E2E0F0;
-  --cta: #34D399;
   --destructive: #EF4444;
   --border: rgba(129, 140, 248, 0.15);
   --input: rgba(129, 140, 248, 0.15);

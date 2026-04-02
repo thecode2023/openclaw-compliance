@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 const publicNavItems = [
   { href: "/feed", label: "Feed" },
   { href: "/audit", label: "Audit" },
+  { href: "/policies", label: "Policies" },
   { href: "/about", label: "About" },
 ];
 
