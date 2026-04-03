@@ -9,7 +9,6 @@ export async function POST(request: NextRequest) {
 
   const supabase = createAdminClient();
 
-  // Fetch all regulations to map titles to IDs
   const { data: regulations, error: regError } = await supabase
     .from("regulations")
     .select("id, title");
@@ -18,21 +17,28 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Failed to fetch regulations" }, { status: 500 });
   }
 
-  // Build title->id map (case-insensitive partial match)
-  const titleMap = new Map<string, string>();
+  // Build lookup maps: exact title and lowercase for fallback
+  const exactMap = new Map<string, string>();
+  const lowerMap = new Map<string, string>();
   for (const reg of regulations) {
-    titleMap.set(reg.title.toLowerCase(), reg.id);
+    exactMap.set(reg.title, reg.id);
+    lowerMap.set(reg.title.toLowerCase(), reg.id);
   }
 
+  // Fuzzy match: try exact, then lowercase, then substring match
   const findId = (title: string): string | null => {
-    // Exact match first
-    const exact = titleMap.get(title.toLowerCase());
-    if (exact) return exact;
-    // Partial match
-    for (const [key, id] of titleMap) {
-      if (key.includes(title.toLowerCase()) || title.toLowerCase().includes(key)) {
-        return id;
-      }
+    if (exactMap.has(title)) return exactMap.get(title)!;
+    const lower = title.toLowerCase();
+    if (lowerMap.has(lower)) return lowerMap.get(lower)!;
+    // Substring: check if any DB title contains the seed title or vice versa
+    for (const [dbLower, id] of lowerMap) {
+      if (dbLower.includes(lower) || lower.includes(dbLower)) return id;
+    }
+    // Word match: extract key words and check overlap
+    const seedWords = lower.split(/[\s\-—()/,]+/).filter((w) => w.length > 3);
+    for (const [dbLower, id] of lowerMap) {
+      const matchCount = seedWords.filter((w) => dbLower.includes(w)).length;
+      if (matchCount >= 3) return id;
     }
     return null;
   };
