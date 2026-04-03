@@ -1,7 +1,10 @@
-import { ExternalLink, Clock, CalendarDays, Activity } from "lucide-react";
+"use client";
+
+import { ExternalLink, Clock, CalendarDays, Activity, Bookmark } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatDistanceToNow, format } from "date-fns";
+import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { Regulation } from "@/lib/types/regulation";
 import type { VelocityResult } from "@/lib/utils/velocity";
@@ -28,22 +31,76 @@ const velocityColors = {
   low: "text-emerald-400 bg-emerald-500/15 border-emerald-500/30",
 };
 
+interface RegulationCardProps {
+  regulation: Regulation;
+  velocity?: VelocityResult;
+  recentlyUpdated?: boolean;
+  userJurisdictions?: string[];
+  onTrackToggle?: (jurisdiction: string, action: "add" | "remove") => void;
+}
+
 export function RegulationCard({
   regulation,
   velocity,
-}: {
-  regulation: Regulation;
-  velocity?: VelocityResult;
-}) {
+  recentlyUpdated,
+  userJurisdictions,
+  onTrackToggle,
+}: RegulationCardProps) {
+  const router = useRouter();
   const statusColor = statusColors[regulation.status] || "";
+  const isTracked = userJurisdictions?.includes(regulation.jurisdiction);
+  const isAuthenticated = userJurisdictions !== undefined;
+
+  const handleTrackClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isAuthenticated) {
+      router.push("/auth/signin");
+      return;
+    }
+    onTrackToggle?.(regulation.jurisdiction, isTracked ? "remove" : "add");
+  };
 
   return (
-    <Card className="transition-colors hover:border-border/80">
+    <Card
+      className={cn(
+        "transition-colors hover:border-border/80",
+        recentlyUpdated && "border-l-2 border-l-primary"
+      )}
+    >
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-3">
-          <CardTitle className="text-base font-semibold leading-snug">
-            {regulation.title}
-          </CardTitle>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-base font-semibold leading-snug">
+                {regulation.title}
+              </CardTitle>
+              {recentlyUpdated && (
+                <Badge className="shrink-0 text-[10px] bg-primary/15 text-primary border-primary/30">
+                  Updated
+                </Badge>
+              )}
+            </div>
+          </div>
+          <button
+            onClick={handleTrackClick}
+            className={cn(
+              "shrink-0 p-1.5 rounded-md transition-colors",
+              isTracked
+                ? "text-primary hover:text-primary/80"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+            title={
+              !isAuthenticated
+                ? "Sign in to track"
+                : isTracked
+                  ? "Tracking this jurisdiction"
+                  : "Track this jurisdiction"
+            }
+          >
+            <Bookmark
+              className={cn("w-4 h-4", isTracked && "fill-current")}
+            />
+          </button>
         </div>
         <div className="flex flex-wrap items-center gap-2 pt-1">
           <Badge variant="outline" className="text-xs">

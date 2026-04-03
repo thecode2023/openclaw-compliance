@@ -26,6 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { RegulationCard } from "@/components/feed/RegulationCard";
 import { UpdateTimeline } from "@/components/feed/UpdateTimeline";
+import { WeeklyUpdatesBanner, type WeeklyUpdate } from "@/components/feed/WeeklyUpdatesBanner";
 import type { Regulation, RegulatoryUpdate } from "@/lib/types/regulation";
 import type { VelocityMap, VelocityResult } from "@/lib/utils/velocity";
 
@@ -98,6 +99,9 @@ interface FeedClientProps {
   jurisdictionOptions: { value: string; label: string }[];
   lastChecked: string | null;
   statusCounts: Record<string, number>;
+  weeklyUpdates?: WeeklyUpdate[];
+  recentlyUpdatedRegIds?: string[];
+  userJurisdictions?: string[];
 }
 
 /* ------------------------------------------------------------------ */
@@ -114,7 +118,11 @@ export function FeedClient({
   jurisdictionOptions: jurisdictionOptionsProp,
   lastChecked,
   statusCounts,
+  weeklyUpdates,
+  recentlyUpdatedRegIds,
+  userJurisdictions: initialUserJurisdictions,
 }: FeedClientProps) {
+  const [trackedJurisdictions, setTrackedJurisdictions] = useState<string[] | undefined>(initialUserJurisdictions);
   const jurisdictionOptions = useMemo(
     () => [{ value: "all", label: "All Jurisdictions" }, ...jurisdictionOptionsProp],
     [jurisdictionOptionsProp]
@@ -273,6 +281,9 @@ export function FeedClient({
           </button>
         </div>
       </div>
+
+      {/* Weekly Updates Banner */}
+      {weeklyUpdates && <WeeklyUpdatesBanner updates={weeklyUpdates} />}
 
       {/* ============================================================= */}
       {/* Filter Bar                                                     */}
@@ -458,6 +469,31 @@ export function FeedClient({
                 key={reg.id}
                 regulation={reg}
                 velocity={velocityScores[reg.jurisdiction]}
+                recentlyUpdated={recentlyUpdatedRegIds?.includes(reg.id)}
+                userJurisdictions={trackedJurisdictions}
+                onTrackToggle={(jurisdiction, action) => {
+                  // Optimistic update
+                  setTrackedJurisdictions((prev) => {
+                    if (!prev) return prev;
+                    return action === "add"
+                      ? [...new Set([...prev, jurisdiction])]
+                      : prev.filter((j) => j !== jurisdiction);
+                  });
+                  // API call
+                  fetch("/api/user/profile/jurisdictions", {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ jurisdiction, action }),
+                  }).catch(() => {
+                    // Revert on error
+                    setTrackedJurisdictions((prev) => {
+                      if (!prev) return prev;
+                      return action === "add"
+                        ? prev.filter((j) => j !== jurisdiction)
+                        : [...prev, jurisdiction];
+                    });
+                  });
+                }}
               />
             ))
           )}
