@@ -27,6 +27,7 @@ import { Badge } from "@/components/ui/badge";
 import { RegulationCard } from "@/components/feed/RegulationCard";
 import { UpdateTimeline } from "@/components/feed/UpdateTimeline";
 import { WeeklyUpdatesBanner, type WeeklyUpdate } from "@/components/feed/WeeklyUpdatesBanner";
+import { useSetChatContext } from "@/components/chat/ChatContext";
 import type { Regulation, RegulatoryUpdate } from "@/lib/types/regulation";
 import type { VelocityMap, VelocityResult } from "@/lib/utils/velocity";
 
@@ -123,6 +124,7 @@ export function FeedClient({
   userJurisdictions: initialUserJurisdictions,
 }: FeedClientProps) {
   const [trackedJurisdictions, setTrackedJurisdictions] = useState<string[] | undefined>(initialUserJurisdictions);
+  useSetChatContext({ page: "feed" });
   const jurisdictionOptions = useMemo(
     () => [{ value: "all", label: "All Jurisdictions" }, ...jurisdictionOptionsProp],
     [jurisdictionOptionsProp]

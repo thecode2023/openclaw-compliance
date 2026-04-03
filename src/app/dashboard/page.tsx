@@ -73,7 +73,7 @@ export default async function DashboardPage() {
   // Fetch all regulations with status, jurisdiction, effective_date, last_verified_at
   const { data: regulations } = await supabase
     .from("regulations")
-    .select("id, jurisdiction, status, effective_date, last_verified_at");
+    .select("id, title, jurisdiction, jurisdiction_display, status, effective_date, last_verified_at");
 
   // Count unread alerts
   const { count: unreadCount } = await supabase
@@ -243,6 +243,50 @@ export default async function DashboardPage() {
       r.status === "proposed"
   ).length;
 
+  // Compute deadlines for tracked regulations
+  const thirtyDaysFromNow = new Date();
+  thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() - 30);
+  const deadlineRegs = allRegs.filter(
+    (r) =>
+      r.effective_date &&
+      new Date(r.effective_date) > thirtyDaysFromNow &&
+      userJurisdictions.has(r.jurisdiction)
+  );
+
+  // Check if user has policies and audits for readiness
+  const { data: userPolicies } = await supabase
+    .from("policy_documents")
+    .select("regulation_id")
+    .eq("user_id", user.id);
+  const policyRegIds = new Set((userPolicies || []).map((p: { regulation_id: string | null }) => p.regulation_id).filter(Boolean));
+  const hasAudit = (auditReports?.length || 0) > 0;
+
+  const deadlines = deadlineRegs
+    .map((r) => {
+      const daysRemaining = Math.ceil(
+        (new Date(r.effective_date!).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+      );
+      let readiness = 20; // Base: tracked
+      if (policyRegIds.has(r.id)) readiness += 40;
+      if (hasAudit) readiness += 30;
+      // Check for critical findings in this jurisdiction
+      const hasCritical = (alerts ?? []).some(
+        (a: { severity?: string; jurisdiction?: string }) =>
+          a.jurisdiction === r.jurisdiction && (a.severity === "critical" || a.severity === "high")
+      );
+      if (!hasCritical) readiness += 10;
+      return {
+        regulation_id: r.id,
+        title: (r as { title?: string }).title || "Unknown",
+        jurisdiction_display: (r as { jurisdiction_display?: string }).jurisdiction_display || r.jurisdiction,
+        effective_date: r.effective_date!,
+        days_remaining: daysRemaining,
+        readiness: Math.min(readiness, 100),
+      };
+    })
+    .sort((a, b) => a.days_remaining - b.days_remaining)
+    .slice(0, 10);
+
   return (
     <DashboardClient
       profile={profile}
@@ -260,6 +304,7 @@ export default async function DashboardPage() {
       recentUpdateJurisdictions={Array.from(recentUpdateJurisdictions)}
       allRegCounts={regCounts}
       pendingCount={pendingCount ?? 0}
+      deadlines={deadlines}
     />
   );
 }

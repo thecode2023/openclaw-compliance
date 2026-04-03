@@ -12,23 +12,71 @@ import {
   Sparkles,
   Clipboard,
   Mail,
+  Search,
 } from "lucide-react";
 import { toast } from "sonner";
+import { format } from "date-fns";
 import { Markdown } from "@/components/Markdown";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useChat } from "@/hooks/useChat";
+import { useChatContext } from "@/components/chat/ChatContext";
 import type { Citation } from "@/lib/types/chat";
 
-const STARTER_QUESTIONS = [
-  "What are the EU AI Act penalties for non-compliance?",
-  "Which regulations require human oversight of AI decisions?",
-  "Compare US and EU requirements for AI transparency",
-  "How do my saved policies align with current regulations?",
-];
+const CONTEXTUAL_STARTERS: Record<string, string[]> = {
+  home: [
+    "What regulations should I track for my industry?",
+    "Give me a quick overview of the EU AI Act",
+    "What are the biggest compliance deadlines coming up?",
+    "How does Complyze help with AI compliance?",
+  ],
+  feed: [
+    "What changed in AI regulation this week?",
+    "Which regulations have the strictest penalties?",
+    "Compare EU and US approaches to AI regulation",
+    "Which regulations apply to financial services?",
+  ],
+  audit: [
+    "What are the most common compliance gaps?",
+    "Which jurisdictions have the strictest AI requirements?",
+    "How should I prepare my AI system for a compliance audit?",
+    "What penalties could my organization face?",
+  ],
+  "audit-results": [
+    "Explain the critical findings in this audit",
+    "How do I fix the highest-severity issues?",
+    "What's my total penalty exposure from these findings?",
+    "Which jurisdiction has the most compliance gaps?",
+  ],
+  dashboard: [
+    "What should I focus on today?",
+    "Which jurisdictions need the most attention?",
+    "How has my compliance posture changed this month?",
+    "What upcoming deadlines should I prepare for?",
+  ],
+  policies: [
+    "How do my saved policies align with current regulations?",
+    "What policy gaps do I have?",
+    "What's missing from my most recent policy?",
+    "Which regulations don't have associated policies yet?",
+  ],
+  "policy-editor": [
+    "What's missing from this policy?",
+    "Suggest improvements for this policy's implementation section",
+    "What regulations should this policy also reference?",
+    "Does this policy meet current requirements?",
+  ],
+  graph: [
+    "Which regulation has the most dependencies?",
+    "What regulations does the EU AI Act trigger?",
+    "Are there any conflicting regulations I should know about?",
+    "Explain how GDPR and the EU AI Act interact",
+  ],
+};
+
+const DEFAULT_STARTERS = CONTEXTUAL_STARTERS.home;
 
 function CitationChips({ citations }: { citations: Citation[] }) {
   if (!citations || citations.length === 0) return null;
-
   return (
     <div className="flex flex-wrap gap-1.5 mt-2">
       {citations.map((c) => (
@@ -61,9 +109,9 @@ function TypingIndicator() {
 
 export function ChatWidget() {
   const { user, loading: authLoading } = useAuth();
+  const { pageContext, triggerMessage, setTriggerMessage } = useChatContext();
   const {
     messages,
-    sessionId,
     sessions,
     isStreaming,
     error,
@@ -77,8 +125,12 @@ export function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [view, setView] = useState<"chat" | "history">("chat");
   const [input, setInput] = useState("");
+  const [historySearch, setHistorySearch] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Get contextual starters
+  const starters = CONTEXTUAL_STARTERS[pageContext.page] || DEFAULT_STARTERS;
 
   // Auto-scroll on new messages
   useEffect(() => {
@@ -98,6 +150,20 @@ export function ChatWidget() {
       loadSessions();
     }
   }, [view, loadSessions]);
+
+  // Handle trigger messages from external components ("Ask about this")
+  useEffect(() => {
+    if (triggerMessage && user) {
+      setIsOpen(true);
+      setView("chat");
+      newSession();
+      // Small delay to ensure chat is open before sending
+      setTimeout(() => {
+        sendMessage(triggerMessage);
+        setTriggerMessage(null);
+      }, 200);
+    }
+  }, [triggerMessage]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (authLoading) return null;
   if (!user) return null;
@@ -124,6 +190,13 @@ export function ChatWidget() {
     setView("chat");
   };
 
+  // Filter sessions for history search
+  const filteredSessions = historySearch
+    ? sessions.filter((s) =>
+        (s.title || "").toLowerCase().includes(historySearch.toLowerCase())
+      )
+    : sessions;
+
   return (
     <>
       {/* Floating button */}
@@ -146,7 +219,7 @@ export function ChatWidget() {
             {view === "history" ? (
               <>
                 <button
-                  onClick={() => setView("chat")}
+                  onClick={() => { setView("chat"); setHistorySearch(""); }}
                   className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <ArrowLeft className="w-4 h-4" />
@@ -190,41 +263,64 @@ export function ChatWidget() {
 
           {/* Content area */}
           {view === "history" ? (
-            <div className="flex-1 overflow-y-auto p-3 space-y-2">
-              {sessions.length === 0 ? (
-                <p className="text-center text-sm text-muted-foreground py-8">
-                  No conversations yet
-                </p>
-              ) : (
-                sessions.map((session) => (
-                  <div
-                    key={session.id}
-                    className="flex items-center gap-2 p-3 rounded-lg hover:bg-muted cursor-pointer transition-colors group"
-                  >
-                    <button
-                      onClick={() => handleSessionSelect(session.id)}
-                      className="flex-1 text-left min-w-0"
+            <div className="flex-1 overflow-y-auto flex flex-col">
+              {/* Search + New Chat */}
+              <div className="p-3 space-y-2 border-b border-border shrink-0">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                  <input
+                    type="text"
+                    value={historySearch}
+                    onChange={(e) => setHistorySearch(e.target.value)}
+                    placeholder="Search conversations..."
+                    className="w-full h-8 pl-8 pr-3 rounded-md border border-input bg-transparent text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                  />
+                </div>
+                <button
+                  onClick={handleNewChat}
+                  className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-md border border-primary/30 text-primary hover:bg-primary/10 transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  New Conversation
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                {filteredSessions.length === 0 ? (
+                  <p className="text-center text-xs text-muted-foreground py-8">
+                    {historySearch ? "No matching conversations" : "No conversations yet. Start one!"}
+                  </p>
+                ) : (
+                  filteredSessions.map((session) => (
+                    <div
+                      key={session.id}
+                      className="flex items-center gap-2 p-3 rounded-lg hover:bg-muted cursor-pointer transition-colors group"
                     >
-                      <p className="text-sm font-medium truncate">
-                        {session.title || "Untitled conversation"}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {session.message_count} messages
-                      </p>
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteSession(session.id);
-                      }}
-                      className="p-1 rounded text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-all"
-                      title="Delete conversation"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ))
-              )}
+                      <button
+                        onClick={() => handleSessionSelect(session.id)}
+                        className="flex-1 text-left min-w-0"
+                      >
+                        <p className="text-sm font-medium truncate">
+                          {session.title || "Untitled conversation"}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          {session.message_count} messages &middot; {format(new Date(session.updated_at), "MMM d")}
+                        </p>
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteSession(session.id);
+                        }}
+                        className="p-1 rounded text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-all"
+                        title="Delete conversation"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           ) : (
             <>
@@ -242,7 +338,7 @@ export function ChatWidget() {
                       </p>
                     </div>
                     <div className="w-full space-y-2">
-                      {STARTER_QUESTIONS.map((q) => (
+                      {starters.map((q) => (
                         <button
                           key={q}
                           onClick={() => handleStarterQuestion(q)}
@@ -289,7 +385,6 @@ export function ChatWidget() {
                                   <TypingIndicator />
                                 ) : null}
                                 <CitationChips citations={msg.citations} />
-                                {/* Share buttons */}
                                 {msg.content && !isStreaming && (
                                   <div className="absolute -top-1 right-1 flex gap-0.5 opacity-0 group-hover/msg:opacity-100 transition-opacity">
                                     <button
@@ -324,14 +419,12 @@ export function ChatWidget() {
                 )}
               </div>
 
-              {/* Error */}
               {error && (
                 <div className="px-3 py-2 text-xs text-destructive bg-destructive/10 border-t border-destructive/20">
                   {error}
                 </div>
               )}
 
-              {/* Input */}
               <form
                 onSubmit={handleSubmit}
                 className="shrink-0 border-t border-border p-3 flex gap-2"

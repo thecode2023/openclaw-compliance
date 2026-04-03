@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
 import type { AuditReport } from "@/lib/types/audit";
 import { exampleConfigs } from "@/lib/utils/example-config";
+import { useSetChatContext } from "@/components/chat/ChatContext";
 
 function parseConfig(input: string): string {
   try {
@@ -122,6 +123,7 @@ export default function AuditPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [auditDone, setAuditDone] = useState(false);
+  useSetChatContext({ page: report ? "audit-results" : "audit" });
   const [cooldown, setCooldown] = useState(false);
 
   const runAudit = async () => {

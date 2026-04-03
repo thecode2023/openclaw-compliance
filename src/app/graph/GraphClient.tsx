@@ -10,6 +10,7 @@ import {
   Network,
 } from "lucide-react";
 import Link from "next/link";
+import { useSetChatContext } from "@/components/chat/ChatContext";
 
 interface RegulationNode {
   id: string;
@@ -87,6 +88,7 @@ const REL_TYPES = ["All", "triggers", "requires", "conflicts_with", "supplements
 export function GraphClient({ regulations, relationships }: GraphClientProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [selectedNode, setSelectedNode] = useState<RegulationNode | null>(null);
+  useSetChatContext({ page: "graph" });
   const [search, setSearch] = useState("");
   const [regionFilter, setRegionFilter] = useState("All");
   const [relFilter, setRelFilter] = useState("All");

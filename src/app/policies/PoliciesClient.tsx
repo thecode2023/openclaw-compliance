@@ -25,6 +25,7 @@ import {
   type PolicyStatus,
 } from "@/lib/types/policy";
 import { INDUSTRY_OPTIONS, AI_USE_CASE_OPTIONS } from "@/lib/types/user";
+import { useSetChatContext } from "@/components/chat/ChatContext";
 import type { Regulation } from "@/lib/types/regulation";
 
 const COMPANY_SIZE_OPTIONS = [
@@ -55,6 +56,7 @@ export function PoliciesClient({
 }: PoliciesClientProps) {
   const [policies, setPolicies] = useState(initialPolicies);
   const [view, setView] = useState<View>("list");
+  useSetChatContext({ page: view === "editor" ? "policy-editor" : "policies" });
   const [activeTab, setActiveTab] = useState("generate");
 
   // Generator state

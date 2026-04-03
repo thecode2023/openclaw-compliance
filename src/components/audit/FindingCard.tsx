@@ -1,3 +1,5 @@
+"use client";
+
 import {
   AlertTriangle,
   AlertCircle,
@@ -5,9 +7,11 @@ import {
   ShieldAlert,
   ExternalLink,
   ChevronDown,
+  MessageCircle,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { useTriggerChat } from "@/components/chat/ChatContext";
 import type { AuditFinding } from "@/lib/types/audit";
 
 const severityConfig: Record<
@@ -58,6 +62,7 @@ export function FindingCard({
 }: FindingCardProps) {
   const config = severityConfig[finding.severity] || severityConfig.info;
   const Icon = config.icon;
+  const triggerChat = useTriggerChat();
 
   return (
     <Card
@@ -123,18 +128,32 @@ export function FindingCard({
                   </p>
                 </div>
 
-                {finding.source_url && (
-                  <a
-                    href={finding.source_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                <div className="flex items-center gap-3">
+                  {finding.source_url && (
+                    <a
+                      href={finding.source_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-primary hover:underline"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      View Source
+                    </a>
+                  )}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      triggerChat(
+                        `Explain this audit finding and how to fix it: "${finding.title}" — ${finding.description} (Regulation: ${finding.regulation_title})`
+                      );
+                    }}
                     className="inline-flex items-center gap-1 text-primary hover:underline"
-                    onClick={(e) => e.stopPropagation()}
                   >
-                    <ExternalLink className="h-3 w-3" />
-                    View Source Regulation
-                  </a>
-                )}
+                    <MessageCircle className="h-3 w-3" />
+                    Explain this
+                  </button>
+                </div>
               </div>
             )}
           </div>

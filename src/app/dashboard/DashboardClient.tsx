@@ -2,6 +2,8 @@
 
 import { useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useSetChatContext } from "@/components/chat/ChatContext";
+import { DeadlineCountdown } from "@/components/dashboard/DeadlineCountdown";
 import { format } from "date-fns";
 import {
   Globe,
@@ -57,6 +59,7 @@ interface DashboardClientProps {
   recentUpdateJurisdictions: string[];
   allRegCounts: Record<string, number>;
   pendingCount: number;
+  deadlines?: { regulation_id: string; title: string; jurisdiction_display: string; effective_date: string; days_remaining: number; readiness: number }[];
 }
 
 export function DashboardClient({
@@ -75,10 +78,12 @@ export function DashboardClient({
   recentUpdateJurisdictions,
   allRegCounts,
   pendingCount,
+  deadlines,
 }: DashboardClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [profileEditorOpen, setProfileEditorOpen] = useState(false);
+  useSetChatContext({ page: "dashboard" });
   const showTestDigest = searchParams.get("test") === "true" || process.env.NODE_ENV === "development";
 
   const latestSnapshot = snapshots[0];
@@ -235,6 +240,11 @@ export function DashboardClient({
           />
         )}
       </div>
+
+      {/* Deadline Countdown */}
+      {deadlines && deadlines.length > 0 && (
+        <DeadlineCountdown deadlines={deadlines} />
+      )}
 
       {/* ============================================================= */}
       {/* 3. World Map — full width, hidden on mobile                    */}

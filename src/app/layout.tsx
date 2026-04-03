@@ -4,6 +4,7 @@ import "./globals.css";
 import { Header } from "@/components/Header";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { ChatWidget } from "@/components/chat/ChatWidget";
+import { ChatContextProvider } from "@/components/chat/ChatContext";
 
 const firaSans = Fira_Sans({
   variable: "--font-fira-sans",
@@ -64,7 +65,9 @@ export default function RootLayout({
               Complyze provides regulatory intelligence for informational purposes only. This is not legal advice. Consult qualified counsel for compliance decisions.
             </p>
           </footer>
-          <ChatWidget />
+          <ChatContextProvider>
+            <ChatWidget />
+          </ChatContextProvider>
         </AuthProvider>
       </body>
     </html>

@@ -1,7 +1,8 @@
 "use client";
 
-import { ExternalLink, Clock, CalendarDays, Activity, Bookmark } from "lucide-react";
+import { ExternalLink, Clock, CalendarDays, Activity, Bookmark, MessageCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTriggerChat } from "@/components/chat/ChatContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
@@ -47,6 +48,7 @@ export function RegulationCard({
   onTrackToggle,
 }: RegulationCardProps) {
   const router = useRouter();
+  const triggerChat = useTriggerChat();
   const statusColor = statusColors[regulation.status] || "";
   const isTracked = userJurisdictions?.includes(regulation.jurisdiction);
   const isAuthenticated = userJurisdictions !== undefined;
@@ -81,6 +83,16 @@ export function RegulationCard({
               )}
             </div>
           </div>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              triggerChat(`Tell me about ${regulation.title} (${regulation.jurisdiction_display})`);
+            }}
+            className="shrink-0 p-1.5 rounded-md text-muted-foreground hover:text-primary transition-colors"
+            title="Ask AI about this"
+          >
+            <MessageCircle className="w-4 h-4" />
+          </button>
           <button
             onClick={handleTrackClick}
             className={cn(
