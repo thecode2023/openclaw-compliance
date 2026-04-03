@@ -4,6 +4,9 @@ import { useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSetChatContext } from "@/components/chat/ChatContext";
 import { DeadlineCountdown } from "@/components/dashboard/DeadlineCountdown";
+import { ActionItems, type ActionItem } from "@/components/dashboard/ActionItems";
+import { PolicyCoverage } from "@/components/dashboard/PolicyCoverage";
+import type { CoverageReport } from "@/lib/utils/policy-coverage";
 import { format } from "date-fns";
 import {
   Globe,
@@ -60,6 +63,8 @@ interface DashboardClientProps {
   allRegCounts: Record<string, number>;
   pendingCount: number;
   deadlines?: { regulation_id: string; title: string; jurisdiction_display: string; effective_date: string; days_remaining: number; readiness: number }[];
+  actionItems?: ActionItem[];
+  coverage?: CoverageReport;
 }
 
 export function DashboardClient({
@@ -79,6 +84,8 @@ export function DashboardClient({
   allRegCounts,
   pendingCount,
   deadlines,
+  actionItems,
+  coverage,
 }: DashboardClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -155,6 +162,9 @@ export function DashboardClient({
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-4">
       {/* ============================================================= */}
+      {/* Action Items */}
+      {actionItems && <ActionItems items={actionItems} />}
+
       {/* 1. Compliance Overview Bar                                     */}
       {/* ============================================================= */}
       <div className="relative rounded-xl border border-[var(--border-subtle)] overflow-hidden backdrop-blur-sm"
@@ -244,6 +254,13 @@ export function DashboardClient({
       {/* Deadline Countdown */}
       {deadlines && deadlines.length > 0 && (
         <DeadlineCountdown deadlines={deadlines} />
+      )}
+
+      {/* Policy Coverage */}
+      {coverage && coverage.total > 0 && (
+        <div className="mb-6">
+          <PolicyCoverage coverage={coverage} />
+        </div>
       )}
 
       {/* ============================================================= */}

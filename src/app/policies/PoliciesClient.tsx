@@ -13,6 +13,11 @@ import {
   Sparkles,
   Download,
   X,
+  CheckSquare,
+  GraduationCap,
+  Shield,
+  Check as CheckIcon,
+  XCircle,
 } from "lucide-react";
 import { Markdown } from "@/components/Markdown";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -42,6 +47,10 @@ interface PoliciesClientProps {
   userAiUseCases: string[];
   userJurisdictions: string[];
   userOrganization: string;
+  coverageItems?: { regulation_id: string; regulation_title: string; jurisdiction: string; jurisdiction_display: string; has_policy: boolean; policy_count: number; policy_statuses: string[]; policy_titles: string[] }[];
+  coveragePercentage?: number;
+  coverageTotal?: number;
+  coverageCovered?: number;
 }
 
 type View = "list" | "editor";
@@ -53,6 +62,10 @@ export function PoliciesClient({
   userAiUseCases,
   userJurisdictions,
   userOrganization,
+  coverageItems,
+  coveragePercentage,
+  coverageTotal,
+  coverageCovered,
 }: PoliciesClientProps) {
   const [policies, setPolicies] = useState(initialPolicies);
   const [view, setView] = useState<View>("list");
@@ -84,6 +97,7 @@ export function PoliciesClient({
   const [saving, setSaving] = useState(false);
   const [editorTab, setEditorTab] = useState<"edit" | "preview">("edit");
   const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [generatingCompanion, setGeneratingCompanion] = useState<string | null>(null);
 
   const getRegion = (jurisdiction: string): string => {
     if (["EU", "GB"].some((c) => jurisdiction.startsWith(c))) return "Europe";
@@ -234,6 +248,35 @@ export function PoliciesClient({
     }
   }, [editorContent, editorTitle, companyName]);
 
+  // Generate companion document
+  const handleCompanion = useCallback(async (type: string) => {
+    if (!editorContent || generatingCompanion) return;
+    setGeneratingCompanion(type);
+    try {
+      const res = await fetch("/api/policies/companion", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          policy_content: editorContent,
+          companion_type: type,
+          regulation_ids: selectedRegIds.length > 0 ? selectedRegIds : editingPolicy?.regulation_id ? [editingPolicy.regulation_id] : [],
+        }),
+      });
+      if (!res.ok) throw new Error("Generation failed");
+      const { content_markdown, title } = await res.json();
+      // Open companion in editor as a new unsaved document
+      setEditorContent(content_markdown);
+      setEditorTitle(title);
+      setEditorStatus("draft");
+      setEditingPolicy(null);
+      toast.success(`${title} generated`);
+    } catch {
+      toast.error("Failed to generate companion document");
+    } finally {
+      setGeneratingCompanion(null);
+    }
+  }, [editorContent, generatingCompanion, selectedRegIds, editingPolicy]);
+
   // Delete policy
   const handleDelete = useCallback(
     async (id: string) => {
@@ -342,6 +385,34 @@ export function PoliciesClient({
           </Button>
         </div>
 
+        {/* Companion document buttons */}
+        {editorContent && (
+          <div className="border-b border-border px-4 py-2 flex items-center gap-2 shrink-0 bg-card/50">
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wider mr-1">Generate:</span>
+            {[
+              { type: "checklist", label: "Checklist", icon: CheckSquare },
+              { type: "briefing", label: "Briefing", icon: FileText },
+              { type: "training", label: "Training", icon: GraduationCap },
+            ].map(({ type, label, icon: Icon }) => (
+              <Button
+                key={type}
+                variant="ghost"
+                size="sm"
+                className="text-xs h-7"
+                disabled={!!generatingCompanion}
+                onClick={() => handleCompanion(type)}
+              >
+                {generatingCompanion === type ? (
+                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                ) : (
+                  <Icon className="w-3 h-3 mr-1" />
+                )}
+                {label}
+              </Button>
+            ))}
+          </div>
+        )}
+
         {/* Mobile edit/preview toggle */}
         <div className="md:hidden border-b border-border px-4 py-2 flex gap-2 shrink-0">
           <button
@@ -401,6 +472,13 @@ export function PoliciesClient({
             My Policies
             {policies.length > 0 && (
               <span className="ml-1.5 text-xs bg-muted px-1.5 py-0.5 rounded-full">{policies.length}</span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="coverage">
+            <Shield className="w-3.5 h-3.5 mr-1.5" />
+            Coverage
+            {coveragePercentage !== undefined && (
+              <span className="ml-1.5 text-xs bg-muted px-1.5 py-0.5 rounded-full">{coveragePercentage}%</span>
             )}
           </TabsTrigger>
         </TabsList>
@@ -763,6 +841,81 @@ export function PoliciesClient({
                   </button>
                 </div>
               ))}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* ── COVERAGE TAB ── */}
+        <TabsContent value="coverage" className="mt-6">
+          {coverageItems && coverageItems.length > 0 ? (
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-sm font-medium">
+                    {coverageCovered} of {coverageTotal} tracked regulations covered
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Regulations in your tracked jurisdictions that have associated policies
+                  </p>
+                </div>
+                <div className="text-right">
+                  <span className={`text-2xl font-bold ${(coveragePercentage || 0) >= 70 ? "text-emerald-400" : (coveragePercentage || 0) >= 40 ? "text-amber-400" : "text-red-400"}`}>
+                    {coveragePercentage}%
+                  </span>
+                  <p className="text-[10px] text-muted-foreground">coverage</p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                {coverageItems.map((item) => (
+                  <div
+                    key={item.regulation_id}
+                    className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
+                      item.has_policy ? "border-border bg-card" : "border-border bg-card hover:border-primary/30"
+                    }`}
+                  >
+                    {item.has_policy ? (
+                      <CheckIcon className="w-4 h-4 text-emerald-400 shrink-0" />
+                    ) : (
+                      <XCircle className="w-4 h-4 text-red-400 shrink-0" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{item.regulation_title}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-[10px] text-muted-foreground">{item.jurisdiction_display}</span>
+                        {item.has_policy && item.policy_titles.length > 0 && (
+                          <span className="text-[10px] text-emerald-400">
+                            {item.policy_titles[0]}
+                            {item.policy_count > 1 ? ` +${item.policy_count - 1}` : ""}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {!item.has_policy && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-xs shrink-0"
+                        onClick={() => {
+                          setSelectedRegIds([item.regulation_id]);
+                          setActiveTab("generate");
+                        }}
+                      >
+                        <Sparkles className="w-3 h-3 mr-1" />
+                        Generate
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-16">
+              <Shield className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+              <p className="text-sm font-medium mb-1">No tracked regulations</p>
+              <p className="text-xs text-muted-foreground">
+                Track jurisdictions in your profile to see policy coverage.
+              </p>
             </div>
           )}
         </TabsContent>

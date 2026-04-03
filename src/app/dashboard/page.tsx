@@ -3,6 +3,9 @@ import { createServerComponentClient } from "@/lib/supabase/server";
 import { DashboardClient } from "./DashboardClient";
 import { computeVelocityScores } from "@/lib/utils/velocity";
 import { estimateMaxExposure } from "@/lib/utils/cost-estimator";
+import { computeCoverage } from "@/lib/utils/policy-coverage";
+import type { ActionItem } from "@/components/dashboard/ActionItems";
+import type { PolicyDocument } from "@/lib/types/policy";
 
 export interface QuickStats {
   enactedCount: number;
@@ -182,7 +185,7 @@ export default async function DashboardPage() {
   // Audit coverage: % of regulations in jurisdiction that have been audited
   const { data: auditReports } = await supabase
     .from("audit_reports")
-    .select("regulations_checked")
+    .select("regulations_checked, created_at")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })
     .limit(1);
@@ -256,7 +259,7 @@ export default async function DashboardPage() {
   // Check if user has policies and audits for readiness
   const { data: userPolicies } = await supabase
     .from("policy_documents")
-    .select("regulation_id")
+    .select("*")
     .eq("user_id", user.id);
   const policyRegIds = new Set((userPolicies || []).map((p: { regulation_id: string | null }) => p.regulation_id).filter(Boolean));
   const hasAudit = (auditReports?.length || 0) > 0;
@@ -287,6 +290,139 @@ export default async function DashboardPage() {
     .sort((a, b) => a.days_remaining - b.days_remaining)
     .slice(0, 10);
 
+  // Compute policy coverage
+  const allRegsFull = allRegs.map((r) => ({
+    id: r.id,
+    title: (r as { title?: string }).title || "",
+    jurisdiction: r.jurisdiction,
+    jurisdiction_display: (r as { jurisdiction_display?: string }).jurisdiction_display || r.jurisdiction,
+  }));
+  const coverage = computeCoverage(
+    allRegsFull,
+    (userPolicies || []) as PolicyDocument[],
+    profile.jurisdictions as string[]
+  );
+
+  // Compute action items
+  const actionItems: ActionItem[] = [];
+
+  // 1. Upcoming deadlines with low readiness
+  for (const dl of deadlines.filter((d) => d.days_remaining > 0 && d.days_remaining < 90 && d.readiness < 50)) {
+    actionItems.push({
+      id: `deadline-${dl.regulation_id}`,
+      priority: dl.days_remaining < 30 ? "urgent" : "high",
+      title: `${dl.title} takes effect in ${dl.days_remaining} days`,
+      description: `Readiness: ${dl.readiness}%. Review compliance before the deadline.`,
+      action_url: "/feed",
+      action_label: "View Regulation",
+      category: "deadline",
+    });
+  }
+
+  // 2. Unread critical/high alerts
+  const criticalAlerts = (alerts ?? []).filter(
+    (a: { read: boolean; severity: string }) => !a.read && (a.severity === "critical" || a.severity === "high")
+  );
+  if (criticalAlerts.length > 0) {
+    actionItems.push({
+      id: "alerts-critical",
+      priority: "urgent",
+      title: `${criticalAlerts.length} critical alert${criticalAlerts.length > 1 ? "s" : ""} need attention`,
+      description: "New enforcement actions or regulatory changes detected.",
+      action_url: "/dashboard",
+      action_label: "Review Alerts",
+      category: "alert",
+    });
+  }
+
+  // 3. Draft policies older than 7 days
+  const sevenDaysAgoMs = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const staleDrafts = (userPolicies || []).filter(
+    (p: { status?: string; updated_at?: string }) =>
+      p.status === "draft" && p.updated_at && new Date(p.updated_at).getTime() < sevenDaysAgoMs
+  );
+  if (staleDrafts.length > 0) {
+    actionItems.push({
+      id: "stale-drafts",
+      priority: "high",
+      title: `${staleDrafts.length} draft polic${staleDrafts.length > 1 ? "ies" : "y"} awaiting review`,
+      description: "Move draft policies to review or approved status.",
+      action_url: "/policies",
+      action_label: "Review Policies",
+      category: "policy",
+    });
+  }
+
+  // 4. Policy coverage below 50%
+  if (coverage.percentage < 50 && coverage.total > 0) {
+    actionItems.push({
+      id: "coverage-gap",
+      priority: "high",
+      title: `Policy coverage is only ${coverage.percentage}%`,
+      description: `${coverage.total - coverage.covered} of ${coverage.total} tracked regulations lack policies.`,
+      action_url: "/policies?tab=coverage",
+      action_label: "View Gaps",
+      category: "coverage",
+    });
+  }
+
+  // 5. Compliance score drop
+  if (snapshots && snapshots.length >= 2) {
+    const latest = snapshots[0]?.overall_score ?? 0;
+    const previous = snapshots[1]?.overall_score ?? 0;
+    if (latest < previous - 5) {
+      actionItems.push({
+        id: "score-drop",
+        priority: "medium",
+        title: `Compliance score dropped ${previous - latest} points`,
+        description: `Score went from ${previous} to ${latest}. Check recent regulatory changes.`,
+        action_url: "/dashboard",
+        action_label: "View Details",
+        category: "score",
+      });
+    }
+  }
+
+  // 6. Unread digest
+  const latestDigest = digests?.[0];
+  if (latestDigest && !latestDigest.read) {
+    actionItems.push({
+      id: "unread-digest",
+      priority: "medium",
+      title: "Weekly regulatory briefing is ready",
+      description: "Review what changed across your tracked jurisdictions.",
+      action_url: "/dashboard",
+      action_label: "Read Digest",
+      category: "digest",
+    });
+  }
+
+  // 7. Stale audit (>30 days)
+  if (auditReports && auditReports.length > 0) {
+    const lastAuditDate = auditReports[0]?.created_at;
+    if (lastAuditDate && Date.now() - new Date(lastAuditDate).getTime() > 30 * 24 * 60 * 60 * 1000) {
+      actionItems.push({
+        id: "stale-audit",
+        priority: "low",
+        title: "Audit may be outdated",
+        description: "Regulations may have changed since your last audit. Consider re-running.",
+        action_url: "/audit",
+        action_label: "Run Audit",
+        category: "audit",
+      });
+    }
+  } else {
+    actionItems.push({
+      id: "no-audit",
+      priority: "low",
+      title: "No audits run yet",
+      description: "Run your first compliance audit to identify gaps.",
+      action_url: "/audit",
+      action_label: "Run Audit",
+      category: "audit",
+    });
+  }
+
   return (
     <DashboardClient
       profile={profile}
@@ -305,6 +441,8 @@ export default async function DashboardPage() {
       allRegCounts={regCounts}
       pendingCount={pendingCount ?? 0}
       deadlines={deadlines}
+      actionItems={actionItems}
+      coverage={coverage}
     />
   );
 }

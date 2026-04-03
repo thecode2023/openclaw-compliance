@@ -3,6 +3,7 @@ import { createServerComponentClient } from "@/lib/supabase/server";
 import { PoliciesClient } from "./PoliciesClient";
 import type { Regulation } from "@/lib/types/regulation";
 import type { PolicyDocument } from "@/lib/types/policy";
+import { computeCoverage } from "@/lib/utils/policy-coverage";
 
 export default async function PoliciesPage() {
   const supabase = await createServerComponentClient();
@@ -36,14 +37,22 @@ export default async function PoliciesPage() {
     .eq("user_id", user.id)
     .order("updated_at", { ascending: false });
 
+  const regs = (regulations || []) as { id: string; title: string; jurisdiction: string; jurisdiction_display: string }[];
+  const pols = (policies || []) as PolicyDocument[];
+  const coverage = computeCoverage(regs, pols, (profile.jurisdictions as string[]) || []);
+
   return (
     <PoliciesClient
       regulations={(regulations as Regulation[]) || []}
-      policies={(policies as PolicyDocument[]) || []}
+      policies={pols}
       userIndustry={profile.industry || ""}
       userAiUseCases={(profile.ai_use_cases as string[]) || []}
       userJurisdictions={(profile.jurisdictions as string[]) || []}
       userOrganization={(profile.organization as string) || ""}
+      coverageItems={coverage.items}
+      coveragePercentage={coverage.percentage}
+      coverageTotal={coverage.total}
+      coverageCovered={coverage.covered}
     />
   );
 }
