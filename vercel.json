@@ -15,6 +15,10 @@
     {
       "path": "/api/embeddings/generate",
       "schedule": "0 9 * * 1"
+    },
+    {
+      "path": "/api/scrape/monitor",
+      "schedule": "0 5 * * 1"
     }
   ]
 }
